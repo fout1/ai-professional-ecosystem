@@ -5,21 +5,22 @@ import { motion } from 'framer-motion';
 import { MessageSquare } from 'lucide-react';
 
 interface AIEmployeeProps {
+  id: string;
   name: string;
   role: string;
   avatarSrc: string;
   bgColor: string;
-  onClick?: () => void;
+  onClick?: (id: string) => void;
 }
 
-const AIEmployee = ({ name, role, avatarSrc, bgColor, onClick }: AIEmployeeProps) => {
+const AIEmployee = ({ id, name, role, avatarSrc, bgColor, onClick }: AIEmployeeProps) => {
   return (
     <motion.div 
       className={cn(
         "rounded-xl p-5 h-[230px] w-full cursor-pointer relative overflow-hidden group",
         bgColor
       )}
-      onClick={onClick}
+      onClick={() => onClick && onClick(id)}
       whileHover={{ y: -5, scale: 1.02 }}
       transition={{ type: "spring", stiffness: 300 }}
     >
@@ -61,6 +62,10 @@ const AIEmployee = ({ name, role, avatarSrc, bgColor, onClick }: AIEmployeeProps
           className="absolute bottom-3 right-3 p-2 rounded-full bg-white/20 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick && onClick(id);
+          }}
         >
           <MessageSquare className="w-4 h-4" />
         </motion.button>

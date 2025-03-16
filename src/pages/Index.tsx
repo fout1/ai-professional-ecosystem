@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import AIEmployee from '@/components/AIEmployee';
 import AIEmployeeChat from '@/components/AIEmployeeChat';
@@ -10,21 +11,16 @@ import { Button } from '@/components/ui/button';
 import { Send, Lightbulb, MessageSquare, Sparkles, Bot, FileText, BarChart3, Calendar, Clock, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-
-interface AIEmployeeData {
-  id: string;
-  name: string;
-  role: string;
-  avatar: string;
-  color: string;
-}
+import aiService, { AIEmployee as AIEmployeeType } from '@/services/aiService';
 
 const Index = () => {
+  const navigate = useNavigate();
   const [inputValue, setInputValue] = useState('');
-  const [activeChat, setActiveChat] = useState<AIEmployeeData | null>(null);
+  const [activeChat, setActiveChat] = useState<AIEmployeeType | null>(null);
   const [environmentName, setEnvironmentName] = useState<string>('');
   const [environmentColor, setEnvironmentColor] = useState<string>('');
-  const [aiEmployees, setAiEmployees] = useState<AIEmployeeData[]>([]);
+  const [aiEmployees, setAiEmployees] = useState<AIEmployeeType[]>([]);
+  const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
   
   // Sample tasks data
   const tasks = [
@@ -46,43 +42,75 @@ const Index = () => {
   ];
   
   useEffect(() => {
-    // Load environment data from localStorage
-    const storedEnvironmentName = localStorage.getItem('environmentName');
-    const storedEnvironmentColor = localStorage.getItem('environmentColor');
-    
-    if (storedEnvironmentName) {
-      setEnvironmentName(storedEnvironmentName);
+    // Check if user is logged in
+    const user = localStorage.getItem('user');
+    if (!user) {
+      navigate('/login');
+      return;
     }
     
-    if (storedEnvironmentColor) {
-      setEnvironmentColor(storedEnvironmentColor);
-    }
+    // Load environment and employees data
+    const envInfo = aiService.getEnvironmentInfo();
+    setEnvironmentName(envInfo.name || 'Professional');
+    setEnvironmentColor(envInfo.color || '');
     
-    // Load AI employees data from localStorage
-    const storedAiEmployees = localStorage.getItem('aiEmployees');
-    if (storedAiEmployees) {
-      setAiEmployees(JSON.parse(storedAiEmployees));
-    } else {
-      // Fallback to sample data if nothing is stored yet
-      setAiEmployees([
-        { id: '1', name: 'Buddy', role: 'Business Development', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-indigo-500 to-blue-600' },
-        { id: '2', name: 'Cassie', role: 'Customer Support', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-blue-500 to-cyan-600' },
-        { id: '3', name: 'Commet', role: 'eCommerce', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-amber-500 to-orange-600' },
-      ]);
+    const employees = aiService.getAIEmployees();
+    if (employees.length > 0) {
+      setAiEmployees(employees);
     }
-  }, []);
+  }, [navigate]);
   
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     
     if (!inputValue.trim()) return;
     
-    toast.success("Question sent to all AI Employees!");
-    setInputValue('');
+    // If there are AI employees, distribute the question to all of them
+    if (aiEmployees.length > 0) {
+      toast.success("Question sent to all AI Employees!");
+      
+      // In a real app, we would process this with a backend service
+      // For now, just clear the input
+      setInputValue('');
+    } else {
+      toast.error("No AI Employees available. Please set up your environment first.");
+    }
   };
   
-  const handleAIEmployeeClick = (employee: AIEmployeeData) => {
-    setActiveChat(employee);
+  const handleAIEmployeeClick = (employeeId: string) => {
+    const employee = aiService.getEmployeeById(employeeId);
+    if (employee) {
+      setActiveChat(employee);
+    } else {
+      toast.error("Employee not found");
+    }
+  };
+
+  const handleAddEmployee = () => {
+    // This would open a modal in a real app
+    toast.info("In a full implementation, this would open a dialog to create a new AI Employee");
+    
+    // For demo purposes, let's add a random employee
+    const roles = ['Research Assistant', 'Content Writer', 'SEO Specialist', 'Data Analyzer'];
+    const colors = [
+      'bg-gradient-to-br from-indigo-500 to-blue-600',
+      'bg-gradient-to-br from-purple-500 to-pink-600',
+      'bg-gradient-to-br from-amber-500 to-orange-600',
+      'bg-gradient-to-br from-emerald-500 to-green-600'
+    ];
+    
+    const randomRole = roles[Math.floor(Math.random() * roles.length)];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    
+    const newEmployee = aiService.addCustomEmployee(randomRole, randomRole, '/placeholder.svg', randomColor);
+    setAiEmployees([...aiEmployees, newEmployee]);
+    
+    toast.success(`Added new ${randomRole} to your team!`);
+  };
+
+  const handleToggleAutomation = (index: number) => {
+    // In a real app, this would toggle the automation status
+    toast.success(`Automation ${index === 0 ? 'Social Media' : 'Email'} toggled!`);
   };
   
   if (activeChat) {
@@ -94,6 +122,7 @@ const Index = () => {
             role={activeChat.role}
             avatarSrc={activeChat.avatar}
             bgColor={activeChat.color}
+            employeeId={activeChat.id}
             onClose={() => setActiveChat(null)}
           />
         </div>
@@ -182,7 +211,12 @@ const Index = () => {
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white">AI Employees</h2>
-                <Button variant="outline" size="sm" className="bg-white/5 border-white/10 hover:bg-white/10 text-white">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                  onClick={handleAddEmployee}
+                >
                   <PlusCircle className="w-3.5 h-3.5 mr-1" />
                   Add employee
                 </Button>
@@ -191,20 +225,42 @@ const Index = () => {
                 {aiEmployees.map(employee => (
                   <AIEmployee 
                     key={employee.id}
+                    id={employee.id}
                     name={employee.name}
                     role={employee.role}
                     avatarSrc={employee.avatar}
                     bgColor={employee.color}
-                    onClick={() => handleAIEmployeeClick(employee)}
+                    onClick={handleAIEmployeeClick}
                   />
                 ))}
+                
+                {aiEmployees.length === 0 && (
+                  <div className="col-span-3 p-8 border border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center text-center">
+                    <Sparkles className="w-10 h-10 text-purple-400 mb-4" />
+                    <h3 className="text-white font-medium mb-2">No AI Employees yet</h3>
+                    <p className="text-purple-300 text-sm mb-4">Add your first AI Employee to get started</p>
+                    <Button
+                      variant="outline"
+                      className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                      onClick={handleAddEmployee}
+                    >
+                      <PlusCircle className="w-4 h-4 mr-2" />
+                      Add employee
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
             
             <motion.div variants={item}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-white">Automations</h2>
-                <Button variant="outline" size="sm" className="bg-white/5 border-white/10 hover:bg-white/10 text-white">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                  onClick={() => toast.info("Automation management would be fully implemented with a backend")}
+                >
                   Manage
                 </Button>
               </div>
@@ -217,7 +273,10 @@ const Index = () => {
                     <h3 className="font-semibold">Social Media</h3>
                     <p className="text-sm text-white/70">Auto Poster</p>
                     <div className="mt-4">
-                      <div className="w-14 h-8 bg-white/10 rounded-full relative px-1 flex items-center cursor-pointer">
+                      <div 
+                        className="w-14 h-8 bg-white/10 rounded-full relative px-1 flex items-center cursor-pointer"
+                        onClick={() => handleToggleAutomation(0)}
+                      >
                         <div className="w-6 h-6 rounded-full bg-white absolute left-1 shadow-sm transition-all"></div>
                       </div>
                     </div>
@@ -239,7 +298,10 @@ const Index = () => {
                     <h3 className="font-semibold">Email</h3>
                     <p className="text-sm text-white/70">Responder</p>
                     <div className="mt-4">
-                      <div className="w-14 h-8 bg-white/10 rounded-full relative px-1 flex items-center cursor-pointer">
+                      <div 
+                        className="w-14 h-8 bg-white/10 rounded-full relative px-1 flex items-center cursor-pointer"
+                        onClick={() => handleToggleAutomation(1)}
+                      >
                         <div className="w-6 h-6 rounded-full bg-white absolute left-1 shadow-sm transition-all"></div>
                       </div>
                     </div>
@@ -258,7 +320,12 @@ const Index = () => {
           
           <motion.div className="lg:col-span-1 space-y-6" variants={item}>
             <DailyTasks tasks={tasks} />
-            <BrainAI snippets={79} websites={12} files={8} name="Aurea" />
+            <BrainAI 
+              snippets={79} 
+              websites={12} 
+              files={8} 
+              name="Aurea" 
+            />
           </motion.div>
         </div>
       </motion.div>

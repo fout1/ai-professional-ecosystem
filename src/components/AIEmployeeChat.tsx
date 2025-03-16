@@ -5,43 +5,43 @@ import { Input } from '@/components/ui/input';
 import { Send, ArrowLeft, Mic, Paperclip, Image, MoreVertical, ThumbsUp, Copy, Sparkles, UploadCloud, DownloadCloud } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
+import aiService, { Message } from '@/services/aiService';
 
 interface AIEmployeeChatProps {
   name: string;
   role: string;
   avatarSrc: string;
   bgColor: string;
+  employeeId: string;
   onClose: () => void;
 }
 
-const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, onClose }: AIEmployeeChatProps) => {
+const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, employeeId, onClose }: AIEmployeeChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showImageUpload, setShowImageUpload] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Default welcome message from the AI
+  // Load conversation history when component mounts
   useEffect(() => {
-    if (messages.length === 0) {
+    const history = aiService.getConversationHistory(employeeId);
+    
+    // If there's no history, add a welcome message
+    if (history.length === 0) {
       setMessages([
         {
-          id: '1',
+          id: crypto.randomUUID(),
           role: 'assistant',
           content: `Hi there! I'm ${name}, your ${role}. How can I assist you today with my specialized knowledge?`,
           timestamp: new Date(),
         },
       ]);
+    } else {
+      setMessages(history);
     }
-  }, [name, role]);
+  }, [employeeId, name, role]);
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -58,9 +58,9 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, onClose }: AIEmployeeC
     
     if (!inputValue.trim()) return;
     
-    // Add user message
+    // First update the UI with the user message
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       role: 'user',
       content: inputValue,
       timestamp: new Date(),
@@ -70,62 +70,55 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, onClose }: AIEmployeeC
     setInputValue('');
     setIsTyping(true);
     
-    // Simulate AI thinking time
-    setTimeout(() => {
-      // Generate AI response based on role
-      let responseContent = '';
+    try {
+      // Send message to AI service and get response
+      const aiResponse = await aiService.sendMessage(employeeId, inputValue);
       
-      switch (role) {
-        case 'Legal Research':
-          responseContent = `Based on my legal research database, I can help with that. The relevant cases include Smith v. Jones (2018) and Walker v. Thompson (2020). These cases established important precedents for this type of situation. Would you like me to provide more detailed analysis?`;
-          break;
-        case 'Contract Drafter':
-          responseContent = `I've drafted over 5,000 contracts of this type. I can customize a template for you with all the necessary clauses and legal protections. Would you like me to start with a standard agreement or something more specialized? I can also review any existing contracts you have.`;
-          break;
-        case 'Document Analyzer':
-          responseContent = `I've analyzed your document and found several key clauses that may need revision. Section 3.2 contains potentially ambiguous language, and the liability limitations in Section 7 might not be enforceable in some jurisdictions. Would you like me to suggest specific revisions?`;
-          break;
-        case 'Accountant':
-          responseContent = `I've reviewed the financial data you provided. Your current ratio is 1.5, which indicates good short-term financial health. However, your inventory turnover ratio is below industry average. Would you like me to prepare a more detailed analysis of your liquidity metrics and suggest improvements?`;
-          break;
-        case 'Tax Specialist':
-          responseContent = `Based on your business structure and revenue streams, I've identified several potential tax deductions you may be eligible for. This could reduce your tax liability by approximately 15-20%. I can draft a detailed tax strategy report if you'd like to explore these options further.`;
-          break;
-        case 'Invoice Manager':
-          responseContent = `I've processed your invoicing data. You currently have 12 outstanding invoices totaling $24,750. The oldest invoice is 45 days overdue. Would you like me to generate automated reminders for clients with payments over 30 days late and suggest a collection strategy?`;
-          break;
-        case 'Rendering Expert':
-          responseContent = `I can create photorealistic 3D renderings of your architectural plans. Would you prefer interior or exterior visualizations first? I can also generate different lighting scenarios to showcase the design at different times of day and with various material finishes.`;
-          break;
-        case 'Design Assistant':
-          responseContent = `Based on your project requirements, I'd recommend considering these sustainable materials for the eastern facade. They provide excellent thermal performance while meeting your aesthetic goals. I can create a detailed specification document including suppliers and cost estimates.`;
-          break;
-        case 'Project Manager':
-          responseContent = `I've updated your project timeline. The critical path now shows potential delays in the foundation phase. Would you like me to suggest resource reallocations to maintain the target completion date? I can also generate a contingency plan to address potential risks.`;
-          break;
-        case 'Simulation Expert':
-          responseContent = `I've run the simulation with the parameters you provided. The results indicate a 92% efficiency rating, which exceeds industry standards. The stress analysis shows all components within safe operating limits. I can generate a detailed report with visualization of all critical points.`;
-          break;
-        case 'Structural Engineer':
-          responseContent = `The structural analysis is complete. All load-bearing elements meet safety requirements with a safety factor of 1.8. I'd recommend increasing the column dimensions in the northeast corner for optimal performance. I can provide detailed calculations and specifications for the contractor.`;
-          break;
-        case 'Project Reporter':
-          responseContent = `I've generated a comprehensive project report. Key metrics show an on-time completion rate of 87% and resource utilization at 91%. Would you like me to prepare an executive summary for your stakeholder meeting, including visualizations of the most important data points?`;
-          break;
-        default:
-          responseContent = `I understand your request. Let me work on that for you. Based on my analysis, there are several approaches we could take. Would you like me to proceed with the most efficient solution or would you prefer I explain all the options in detail first?`;
-      }
-      
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: responseContent,
-        timestamp: new Date(),
-      };
-      
+      // Update messages with AI response
       setMessages(prevMessages => [...prevMessages, aiResponse]);
       setIsTyping(false);
-    }, 1500);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setIsTyping(false);
+      toast.error("Failed to get a response. Please try again.");
+    }
+  };
+
+  const handleNewConversation = () => {
+    aiService.clearConversation(employeeId);
+    setMessages([
+      {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `Hi there! I'm ${name}, your ${role}. How can I assist you today with my specialized knowledge?`,
+        timestamp: new Date(),
+      },
+    ]);
+    setShowOptions(false);
+  };
+
+  const handleExportChat = () => {
+    const chatContent = messages.map(msg => 
+      `${msg.role === 'user' ? 'You' : name} (${new Date(msg.timestamp).toLocaleString()}): ${msg.content}`
+    ).join('\n\n');
+    
+    const blob = new Blob([chatContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-with-${name}-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success("Chat exported successfully");
+    setShowOptions(false);
+  };
+
+  const handleUploadFile = () => {
+    toast.info("File upload functionality would be implemented with a real backend");
+    setShowImageUpload(false);
   };
 
   return (
@@ -163,15 +156,24 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, onClose }: AIEmployeeC
           {showOptions && (
             <div className="absolute right-4 top-16 w-48 bg-[#1A0D3A] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden">
               <div className="p-1">
-                <button className="w-full flex items-center text-left px-3 py-2 text-sm rounded hover:bg-white/5 text-white/90">
+                <button 
+                  className="w-full flex items-center text-left px-3 py-2 text-sm rounded hover:bg-white/5 text-white/90"
+                  onClick={handleExportChat}
+                >
                   <DownloadCloud className="w-4 h-4 mr-2 text-purple-400" />
                   <span>Export chat</span>
                 </button>
-                <button className="w-full flex items-center text-left px-3 py-2 text-sm rounded hover:bg-white/5 text-white/90">
+                <button 
+                  className="w-full flex items-center text-left px-3 py-2 text-sm rounded hover:bg-white/5 text-white/90"
+                  onClick={() => setShowImageUpload(true)}
+                >
                   <UploadCloud className="w-4 h-4 mr-2 text-purple-400" />
-                  <span>Import data</span>
+                  <span>Upload data</span>
                 </button>
-                <button className="w-full flex items-center text-left px-3 py-2 text-sm rounded hover:bg-white/5 text-white/90">
+                <button 
+                  className="w-full flex items-center text-left px-3 py-2 text-sm rounded hover:bg-white/5 text-white/90"
+                  onClick={handleNewConversation}
+                >
                   <Sparkles className="w-4 h-4 mr-2 text-purple-400" />
                   <span>New conversation</span>
                 </button>
@@ -204,7 +206,7 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, onClose }: AIEmployeeC
                     message.role === 'user' ? 'text-white/70' : 'text-purple-300'
                   }`}>
                     <p className="text-xs">
-                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     
                     {message.role === 'assistant' && (
@@ -260,7 +262,7 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, onClose }: AIEmployeeC
             <Button 
               size="sm" 
               className="bg-white/10 hover:bg-white/20 text-white"
-              onClick={() => setShowImageUpload(false)}
+              onClick={handleUploadFile}
             >
               Select files
             </Button>
@@ -285,6 +287,7 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, onClose }: AIEmployeeC
               variant="ghost" 
               size="icon" 
               className="h-8 w-8 rounded-full hover:bg-white/10 text-purple-300"
+              onClick={() => toast.info("Image upload would be implemented with a real backend")}
             >
               <Image className="h-4 w-4" />
             </Button>
@@ -293,6 +296,7 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, onClose }: AIEmployeeC
               variant="ghost" 
               size="icon" 
               className="h-8 w-8 rounded-full hover:bg-white/10 text-purple-300"
+              onClick={() => toast.info("Voice input would be implemented with a real backend")}
             >
               <Mic className="h-4 w-4" />
             </Button>

@@ -11,29 +11,36 @@ import Signup from "./pages/Signup";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
+// Create QueryClient outside of the component
 const queryClient = new QueryClient();
 
+// Create a functional component that returns the routing structure
+const AppRoutes = () => (
+  <BrowserRouter>
+    <AnimatePresence mode="wait">
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/employees" element={<Index />} />
+        <Route path="/brain" element={<Index />} />
+        <Route path="/calendar" element={<Index />} />
+        <Route path="/dashboard" element={<Index />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AnimatePresence>
+  </BrowserRouter>
+);
+
+// Main App component
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <AnimatePresence mode="wait">
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/employees" element={<Index />} />
-            <Route path="/brain" element={<Index />} />
-            <Route path="/calendar" element={<Index />} />
-            <Route path="/dashboard" element={<Index />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AnimatePresence>
-      </BrowserRouter>
+      <AppRoutes />
     </TooltipProvider>
   </QueryClientProvider>
 );

@@ -1,148 +1,130 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Scale, Landmark, Building2, Ruler, Briefcase, Cpu, PenTool, Calculator, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { Gavel, Calculator, Building2, Hammer, Sparkles, Check, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
+import aiService, { EnvironmentType } from '@/services/aiService';
 
 interface EnvironmentOption {
   id: string;
-  name: string;
+  title: string;
+  type: EnvironmentType;
   description: string;
   icon: React.ReactNode;
   color: string;
-  aiEmployees: number;
+  gradientClass: string;
 }
 
 const Onboarding = () => {
   const navigate = useNavigate();
   const [selectedEnvironment, setSelectedEnvironment] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [environmentName, setEnvironmentName] = useState('');
   
   const environments: EnvironmentOption[] = [
     {
-      id: 'law-firm',
-      name: 'Law Firm',
-      description: 'Legal research, contract drafting, document analysis, and consultations',
-      icon: <Scale className="w-6 h-6" />,
-      color: 'from-indigo-500 to-blue-600',
-      aiEmployees: 4,
+      id: 'law',
+      title: 'Law Firm',
+      type: 'law',
+      description: 'AI employees for legal research, contract drafting, and document analysis',
+      icon: <Gavel className="w-6 h-6 text-blue-500" />,
+      color: 'text-blue-500',
+      gradientClass: 'bg-gradient-to-br from-indigo-500 to-blue-600',
     },
     {
-      id: 'accounting-firm',
-      name: 'Accounting Firm',
-      description: 'Accounting, invoice management, balance sheets, and tax calculations',
-      icon: <Calculator className="w-6 h-6" />,
-      color: 'from-blue-500 to-cyan-600',
-      aiEmployees: 3,
+      id: 'accounting',
+      title: 'Accounting Firm',
+      type: 'accounting',
+      description: 'AI employees for accounting, tax calculations, and invoice management',
+      icon: <Calculator className="w-6 h-6 text-green-500" />,
+      color: 'text-green-500',
+      gradientClass: 'bg-gradient-to-br from-green-500 to-emerald-600',
     },
     {
-      id: 'architecture-studio',
-      name: 'Architecture Studio',
-      description: 'Rendering, assisted design, client management, and deadline tracking',
-      icon: <PenTool className="w-6 h-6" />,
-      color: 'from-violet-600 to-purple-700',
-      aiEmployees: 4,
+      id: 'architecture',
+      title: 'Architecture Studio',
+      type: 'architecture',
+      description: 'AI employees for rendering, design assistance, and project management',
+      icon: <Building2 className="w-6 h-6 text-pink-500" />,
+      color: 'text-pink-500',
+      gradientClass: 'bg-gradient-to-br from-pink-500 to-rose-600',
     },
     {
-      id: 'engineering-firm',
-      name: 'Engineering Firm',
-      description: 'Simulations, structural calculations, project management, and reporting',
-      icon: <Cpu className="w-6 h-6" />,
-      color: 'from-pink-500 to-rose-600',
-      aiEmployees: 3,
-    },
-    {
-      id: 'consulting-firm',
-      name: 'Consulting Firm',
-      description: 'Market research, strategy planning, data analysis, and presentation development',
-      icon: <Briefcase className="w-6 h-6" />,
-      color: 'from-amber-500 to-orange-600',
-      aiEmployees: 4,
-    },
-    {
-      id: 'real-estate-agency',
-      name: 'Real Estate Agency',
-      description: 'Property management, client database, market analysis, and listing automation',
-      icon: <Building2 className="w-6 h-6" />,
-      color: 'from-emerald-500 to-teal-600',
-      aiEmployees: 3,
+      id: 'engineering',
+      title: 'Engineering Firm',
+      type: 'engineering',
+      description: 'AI employees for simulations, calculations, and project reporting',
+      icon: <Hammer className="w-6 h-6 text-amber-500" />,
+      color: 'text-amber-500',
+      gradientClass: 'bg-gradient-to-br from-amber-500 to-orange-600',
     },
   ];
-
-  const aiEmployeesByEnvironment = {
-    'law-firm': [
-      { id: '1', name: 'Lenny', role: 'Legal Research', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-indigo-500 to-blue-600' },
-      { id: '2', name: 'Claire', role: 'Contract Drafter', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-indigo-400 to-blue-500' },
-      { id: '3', name: 'Alex', role: 'Document Analyzer', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-indigo-600 to-blue-700' },
-      { id: '4', name: 'Jess', role: 'Client Consultant', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-indigo-300 to-blue-400' },
-    ],
-    'accounting-firm': [
-      { id: '1', name: 'Adam', role: 'Accountant', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-blue-500 to-cyan-600' },
-      { id: '2', name: 'Finley', role: 'Tax Specialist', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-blue-400 to-cyan-500' },
-      { id: '3', name: 'Morgan', role: 'Invoice Manager', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-blue-600 to-cyan-700' },
-    ],
-    'architecture-studio': [
-      { id: '1', name: 'Ava', role: 'Rendering Expert', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png', color: 'bg-gradient-to-br from-violet-600 to-purple-700' },
-      { id: '2', name: 'Devin', role: 'Design Assistant', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png', color: 'bg-gradient-to-br from-violet-500 to-purple-600' },
-      { id: '3', name: 'Sam', role: 'Project Manager', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png', color: 'bg-gradient-to-br from-violet-700 to-purple-800' },
-      { id: '4', name: 'Riley', role: 'Client Coordinator', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png', color: 'bg-gradient-to-br from-violet-400 to-purple-500' },
-    ],
-    'engineering-firm': [
-      { id: '1', name: 'Erica', role: 'Simulation Expert', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png', color: 'bg-gradient-to-br from-pink-500 to-rose-600' },
-      { id: '2', name: 'Calvin', role: 'Structural Engineer', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png', color: 'bg-gradient-to-br from-pink-400 to-rose-500' },
-      { id: '3', name: 'Taylor', role: 'Project Reporter', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png', color: 'bg-gradient-to-br from-pink-600 to-rose-700' },
-    ],
-    'consulting-firm': [
-      { id: '1', name: 'Marcus', role: 'Market Researcher', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-amber-500 to-orange-600' },
-      { id: '2', name: 'Sophia', role: 'Strategy Expert', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-amber-400 to-orange-500' },
-      { id: '3', name: 'Lucas', role: 'Data Analyst', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-amber-600 to-orange-700' },
-      { id: '4', name: 'Emma', role: 'Presentation Designer', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png', color: 'bg-gradient-to-br from-amber-300 to-orange-400' },
-    ],
-    'real-estate-agency': [
-      { id: '1', name: 'Noah', role: 'Property Manager', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png', color: 'bg-gradient-to-br from-emerald-500 to-teal-600' },
-      { id: '2', name: 'Olivia', role: 'Client Specialist', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png', color: 'bg-gradient-to-br from-emerald-400 to-teal-500' },
-      { id: '3', name: 'Ethan', role: 'Market Analyst', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png', color: 'bg-gradient-to-br from-emerald-600 to-teal-700' },
-    ],
-  };
-
-  const handleContinue = async () => {
-    if (!selectedEnvironment) {
-      toast.error('Please select an environment to continue');
+  
+  useEffect(() => {
+    // Check if user is logged in
+    const user = localStorage.getItem('user');
+    if (!user) {
+      navigate('/login');
       return;
     }
-
-    setIsLoading(true);
-    try {
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Find the selected environment details
-      const environment = environments.find(env => env.id === selectedEnvironment);
-      
-      // Store environment selection
-      localStorage.setItem('environment', selectedEnvironment);
-      localStorage.setItem('environmentName', environment?.name || '');
-      localStorage.setItem('environmentColor', environment?.color || '');
-      
-      // Store AI employees for this environment
-      localStorage.setItem('aiEmployees', JSON.stringify(aiEmployeesByEnvironment[selectedEnvironment as keyof typeof aiEmployeesByEnvironment]));
-      
-      toast.success(`${environment?.name} environment setup successful!`);
+    
+    // Check if user has already completed onboarding
+    const env = aiService.getEnvironmentInfo();
+    if (env.name && env.type !== 'custom') {
+      // User has already set up their environment
       navigate('/');
-    } catch (error) {
-      toast.error('Failed to set up environment. Please try again.');
-    } finally {
-      setIsLoading(false);
+    }
+  }, [navigate]);
+  
+  const handleEnvironmentSelect = (id: string) => {
+    setSelectedEnvironment(id);
+    
+    // Set default name based on selection
+    const selectedEnv = environments.find(env => env.id === id);
+    if (selectedEnv) {
+      setEnvironmentName(`My ${selectedEnv.title}`);
     }
   };
-
-  // Animation variants
-  const container = {
+  
+  const handleContinue = () => {
+    if (!selectedEnvironment) {
+      toast.error('Please select an environment type');
+      return;
+    }
+    
+    setCurrentStep(2);
+  };
+  
+  const handleSetupComplete = () => {
+    if (!environmentName.trim()) {
+      toast.error('Please enter a name for your environment');
+      return;
+    }
+    
+    const selectedEnv = environments.find(env => env.id === selectedEnvironment);
+    if (!selectedEnv) {
+      toast.error('Please select a valid environment');
+      return;
+    }
+    
+    // Set up the environment in our service
+    aiService.setEnvironment(
+      environmentName,
+      selectedEnv.gradientClass,
+      selectedEnv.type
+    );
+    
+    toast.success('Your AI workspace is ready!');
+    
+    // Navigate to dashboard
+    navigate('/');
+  };
+  
+  const containerVariants = {
     hidden: { opacity: 0 },
-    show: {
+    visible: {
       opacity: 1,
       transition: {
         staggerChildren: 0.1
@@ -150,86 +132,222 @@ const Onboarding = () => {
     }
   };
   
-  const item = {
+  const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    show: { y: 0, opacity: 1 }
+    visible: {
+      y: 0,
+      opacity: 1
+    }
   };
-
+  
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#2A0E61] to-[#23174C] p-6 overflow-x-hidden">
-      <motion.div 
-        className="w-full max-w-5xl space-y-8"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300">
-            Choose Your Professional Environment
-          </h1>
-          <p className="mt-3 text-lg text-purple-300">
-            Select the work environment that matches your profession to get started with specialized AI employees
-          </p>
+    <div className="flex min-h-screen bg-gradient-to-br from-[#0A051E] to-[#120A2F]">
+      <div className="max-w-4xl mx-auto w-full px-4 py-12">
+        <div className="text-center mb-8">
+          <motion.h1 
+            className="text-3xl font-bold text-white mb-2"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+          >
+            Welcome to your AI Professional workspace
+          </motion.h1>
+          <motion.p 
+            className="text-purple-300"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            Let's set up your environment with specialized AI employees for your profession
+          </motion.p>
         </div>
         
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          variants={container}
-          initial="hidden"
-          animate="show"
+          className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-8 shadow-lg"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
         >
-          {environments.map((env) => (
+          <div className="mb-6 flex items-center">
+            <div className={`w-8 h-8 rounded-full ${currentStep >= 1 ? 'bg-purple-600' : 'bg-white/10'} flex items-center justify-center`}>
+              {currentStep > 1 ? <Check className="w-5 h-5 text-white" /> : <span className="text-white font-medium">1</span>}
+            </div>
+            <div className="h-0.5 w-12 bg-white/10 mx-2"></div>
+            <div className={`w-8 h-8 rounded-full ${currentStep >= 2 ? 'bg-purple-600' : 'bg-white/10'} flex items-center justify-center`}>
+              {currentStep > 2 ? <Check className="w-5 h-5 text-white" /> : <span className="text-white font-medium">2</span>}
+            </div>
+          </div>
+          
+          {currentStep === 1 && (
             <motion.div
-              key={env.id}
-              variants={item}
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 300 }}
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
             >
-              <Card 
-                className={`p-6 cursor-pointer transition-all duration-200 hover:shadow-xl bg-white/5 backdrop-blur-sm border border-white/10 text-white ${
-                  selectedEnvironment === env.id 
-                    ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-[#23174C]' 
-                    : 'hover:border-purple-500/50'
-                }`}
-                onClick={() => setSelectedEnvironment(env.id)}
-              >
-                <div className="flex items-start">
-                  <div className={`bg-gradient-to-br ${env.color} p-3 rounded-lg text-white mr-4`}>
-                    {env.icon}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold">{env.name}</h3>
-                    <p className="text-purple-300 text-sm mt-1">{env.description}</p>
-                    <div className="flex items-center mt-3 text-xs text-purple-400">
-                      <span className="bg-purple-500/20 rounded-full px-2 py-1">{env.aiEmployees} AI Employees</span>
+              <h2 className="text-xl font-semibold text-white mb-4">Choose your environment</h2>
+              <p className="text-purple-300 mb-6">Select the type of professional environment you want to create</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                {environments.map((env) => (
+                  <motion.div
+                    key={env.id}
+                    variants={itemVariants}
+                    onClick={() => handleEnvironmentSelect(env.id)}
+                    className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                      selectedEnvironment === env.id 
+                        ? 'border-purple-500 bg-purple-500/10' 
+                        : 'border-white/10 bg-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="flex items-start">
+                      <div className={`w-10 h-10 rounded-lg ${env.gradientClass} flex items-center justify-center mr-3`}>
+                        {env.icon}
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-white">{env.title}</h3>
+                        <p className="text-sm text-purple-300">{env.description}</p>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
-        
-        <div className="flex justify-end mt-12">
-          <Button 
-            onClick={handleContinue}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-8 py-6 text-lg rounded-lg flex items-center gap-2 group"
-            disabled={!selectedEnvironment || isLoading}
-          >
-            {isLoading ? (
-              <div className="flex items-center gap-3">
-                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                <span>Setting up your workspace...</span>
+                  </motion.div>
+                ))}
               </div>
-            ) : (
-              <>
-                <span>Continue to Workspace</span>
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </>
-            )}
-          </Button>
-        </div>
-      </motion.div>
+              
+              <div className="flex justify-end">
+                <Button 
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={handleContinue}
+                >
+                  Continue
+                  <ChevronRight className="ml-1 w-4 h-4" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+          
+          {currentStep === 2 && (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <h2 className="text-xl font-semibold text-white mb-4">Customize your workspace</h2>
+              <p className="text-purple-300 mb-6">Give your AI environment a name</p>
+              
+              <div className="mb-6">
+                <label htmlFor="environmentName" className="block text-sm font-medium text-purple-300 mb-2">
+                  Environment Name
+                </label>
+                <input
+                  type="text"
+                  id="environmentName"
+                  className="w-full px-4 py-3 rounded-lg border border-white/10 bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="My Law Firm"
+                  value={environmentName}
+                  onChange={(e) => setEnvironmentName(e.target.value)}
+                />
+              </div>
+              
+              {selectedEnvironment && (
+                <motion.div 
+                  className="mb-8 p-4 rounded-lg border border-white/10 bg-white/5"
+                  variants={itemVariants}
+                >
+                  <h3 className="font-medium text-white mb-2">Your AI Employees</h3>
+                  <p className="text-sm text-purple-300 mb-4">
+                    Based on your selection, your workspace will include these specialized AI employees:
+                  </p>
+                  
+                  <div className="space-y-3">
+                    {selectedEnvironment === 'law' && (
+                      <>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-blue-400 mr-2" />
+                          <span className="text-white">Legal Research Assistant</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-purple-400 mr-2" />
+                          <span className="text-white">Contract Drafter</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-indigo-400 mr-2" />
+                          <span className="text-white">Document Analyzer</span>
+                        </div>
+                      </>
+                    )}
+                    
+                    {selectedEnvironment === 'accounting' && (
+                      <>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-green-400 mr-2" />
+                          <span className="text-white">Accountant</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-emerald-400 mr-2" />
+                          <span className="text-white">Tax Specialist</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-teal-400 mr-2" />
+                          <span className="text-white">Invoice Manager</span>
+                        </div>
+                      </>
+                    )}
+                    
+                    {selectedEnvironment === 'architecture' && (
+                      <>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-pink-400 mr-2" />
+                          <span className="text-white">Rendering Expert</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-rose-400 mr-2" />
+                          <span className="text-white">Design Assistant</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-red-400 mr-2" />
+                          <span className="text-white">Project Manager</span>
+                        </div>
+                      </>
+                    )}
+                    
+                    {selectedEnvironment === 'engineering' && (
+                      <>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-amber-400 mr-2" />
+                          <span className="text-white">Simulation Expert</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-orange-400 mr-2" />
+                          <span className="text-white">Structural Engineer</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Sparkles className="w-4 h-4 text-yellow-400 mr-2" />
+                          <span className="text-white">Project Reporter</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+              
+              <div className="flex justify-between">
+                <Button 
+                  variant="outline" 
+                  className="border-white/10 text-white"
+                  onClick={() => setCurrentStep(1)}
+                >
+                  Back
+                </Button>
+                <Button 
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={handleSetupComplete}
+                >
+                  Complete Setup
+                  <Sparkles className="ml-1 w-4 h-4" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+      </div>
     </div>
   );
 };

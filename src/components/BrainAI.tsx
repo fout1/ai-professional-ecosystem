@@ -3,6 +3,10 @@ import React, { useState } from 'react';
 import { Brain, FileText, Globe, Plus, ChevronLeft, ChevronRight, Upload, Search, File } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 interface BrainAIProps {
   snippets: number;
@@ -11,8 +15,69 @@ interface BrainAIProps {
   name: string;
 }
 
+interface BrainItem {
+  id: string;
+  type: 'pdf' | 'doc' | 'website';
+  name: string;
+  date: string;
+}
+
 const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadType, setUploadType] = useState<'file' | 'website'>('file');
+  const [uploadUrl, setUploadUrl] = useState('');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [brainItems, setBrainItems] = useState<BrainItem[]>([
+    { id: '1', type: 'pdf', name: 'Financial Report.pdf', date: '2 days ago' },
+    { id: '2', type: 'doc', name: 'Project Plan.docx', date: '1 week ago' },
+    { id: '3', type: 'website', name: 'industry-news.com', date: 'Yesterday' },
+  ]);
+  
+  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setUploadFile(files[0]);
+    }
+  };
+  
+  const handleUpload = () => {
+    if (uploadType === 'website' && uploadUrl) {
+      // In a real app, this would upload the website to the backend
+      const newItem: BrainItem = {
+        id: crypto.randomUUID(),
+        type: 'website',
+        name: uploadUrl.replace(/^https?:\/\//, ''),
+        date: 'Just now'
+      };
+      
+      setBrainItems([newItem, ...brainItems]);
+      toast.success("Website added to Brain successfully!");
+      setShowUploadDialog(false);
+      setUploadUrl('');
+    } else if (uploadType === 'file' && uploadFile) {
+      // In a real app, this would upload the file to the backend
+      const fileType = uploadFile.name.endsWith('.pdf') ? 'pdf' : 'doc';
+      
+      const newItem: BrainItem = {
+        id: crypto.randomUUID(),
+        type: fileType,
+        name: uploadFile.name,
+        date: 'Just now'
+      };
+      
+      setBrainItems([newItem, ...brainItems]);
+      toast.success("File added to Brain successfully!");
+      setShowUploadDialog(false);
+      setUploadFile(null);
+    } else {
+      toast.error("Please provide a valid URL or file");
+    }
+  };
+  
+  const handleViewContent = (item: BrainItem) => {
+    toast.info(`Viewing content of ${item.name}`);
+  };
   
   return (
     <div className="space-y-4">
@@ -21,7 +86,10 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
           <Brain className="w-6 h-6 text-purple-400" />
           <span>Brain AI</span>
         </h2>
-        <button className="text-purple-400 hover:text-white p-1 bg-white/5 hover:bg-white/10 rounded-full transition-colors">
+        <button 
+          className="text-purple-400 hover:text-white p-1 bg-white/5 hover:bg-white/10 rounded-full transition-colors"
+          onClick={() => setShowUploadDialog(true)}
+        >
           <Plus className="w-5 h-5" />
         </button>
       </div>
@@ -77,6 +145,7 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
               variant="outline" 
               className="bg-white/10 border-white/20 hover:bg-white/20 text-white text-xs"
               size="sm"
+              onClick={() => setShowUploadDialog(true)}
             >
               <Upload className="w-3 h-3 mr-1" />
               Add to Brain
@@ -97,6 +166,7 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
               type="text" 
               className="w-full h-full bg-white/10 rounded-lg border border-white/20 pl-7 pr-2 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500 text-white"
               placeholder="Search..."
+              onChange={() => toast.info("Search functionality would be implemented with a backend")}
             />
           </div>
         </div>
@@ -116,13 +186,9 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
         </div>
         
         <div className="flex space-x-4 overflow-x-auto pb-2 hide-scrollbar">
-          {[
-            { type: 'pdf', name: 'Financial Report.pdf', date: '2 days ago' },
-            { type: 'doc', name: 'Project Plan.docx', date: '1 week ago' },
-            { type: 'website', name: 'industry-news.com', date: 'Yesterday' },
-          ].map((item, index) => (
+          {brainItems.map((item, index) => (
             <motion.div 
-              key={index}
+              key={item.id}
               className="p-3 border border-white/10 bg-white/5 rounded-lg w-48 flex flex-col text-white/90"
               onMouseEnter={() => setHoveredSection(`upload-${index}`)}
               onMouseLeave={() => setHoveredSection(null)}
@@ -144,7 +210,10 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                 >
-                  <button className="w-full text-[10px] py-1 bg-white/10 hover:bg-white/20 rounded text-center text-white/80">
+                  <button 
+                    className="w-full text-[10px] py-1 bg-white/10 hover:bg-white/20 rounded text-center text-white/80"
+                    onClick={() => handleViewContent(item)}
+                  >
                     View content
                   </button>
                 </motion.div>
@@ -153,6 +222,87 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
           ))}
         </div>
       </div>
+      
+      {/* Upload Dialog */}
+      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+        <DialogContent className="bg-[#1A0D3A] border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle>Add to Brain</DialogTitle>
+            <DialogDescription className="text-purple-300">
+              Upload a file or website to your Brain AI knowledge base.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex space-x-2 mt-2">
+            <Button
+              variant="outline"
+              className={`flex-1 ${uploadType === 'file' ? 'bg-white/10' : 'bg-transparent'} border-white/10 text-white`}
+              onClick={() => setUploadType('file')}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              File
+            </Button>
+            <Button
+              variant="outline"
+              className={`flex-1 ${uploadType === 'website' ? 'bg-white/10' : 'bg-transparent'} border-white/10 text-white`}
+              onClick={() => setUploadType('website')}
+            >
+              <Globe className="w-4 h-4 mr-2" />
+              Website
+            </Button>
+          </div>
+          
+          {uploadType === 'file' ? (
+            <div className="space-y-4 mt-4">
+              <div className="border-2 border-dashed border-white/20 rounded-lg p-6 flex flex-col items-center justify-center">
+                <Upload className="w-8 h-8 text-purple-400 mb-2" />
+                <p className="text-sm text-center text-white mb-2">Drag and drop files here, or click to select</p>
+                <p className="text-xs text-center text-purple-300 mb-4">Supports PDF, DOCX, TXT (max 10MB)</p>
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <span className="bg-white/10 hover:bg-white/20 text-white text-sm py-1 px-3 rounded">Select files</span>
+                  <input 
+                    id="file-upload" 
+                    type="file" 
+                    className="hidden" 
+                    accept=".pdf,.docx,.txt"
+                    onChange={handleFilesSelected}
+                  />
+                </label>
+                {uploadFile && (
+                  <div className="mt-4 text-sm text-white">
+                    Selected: {uploadFile.name}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="website-url" className="text-white">Website URL</Label>
+                <Input
+                  id="website-url"
+                  placeholder="https://example.com"
+                  className="bg-white/5 border-white/10 text-white"
+                  value={uploadUrl}
+                  onChange={(e) => setUploadUrl(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" className="border-white/10 text-white" onClick={() => setShowUploadDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={handleUpload}
+            >
+              Upload
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
