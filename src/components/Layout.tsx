@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 
 interface LayoutProps {
@@ -7,6 +8,20 @@ interface LayoutProps {
 }
 
 const Layout = ({ children }: LayoutProps) => {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (!user) {
+      navigate('/login');
+    } else {
+      const environment = localStorage.getItem('environment');
+      if (!environment) {
+        navigate('/onboarding');
+      }
+    }
+  }, [navigate]);
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
