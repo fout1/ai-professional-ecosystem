@@ -1,5 +1,5 @@
-
 import { toast } from "sonner";
+import { OPENAI_CONFIG, getApiKey } from "@/config/apiConfig";
 
 // Define message interfaces
 export interface Message {
@@ -346,11 +346,32 @@ class AIService {
     
     this.store.addMessage(employeeId, userMessage);
     
-    // Generate AI response based on employee role and training data
     try {
-      // In a real app, this would be an API call to a language model
-      // For now, we'll use a simulated response
-      const responseContent = await this.generateResponse(employee, content);
+      // Get the API key
+      const apiKey = getApiKey();
+      
+      if (!apiKey) {
+        throw new Error("OpenAI API key not found. Please add your API key in the settings.");
+      }
+      
+      // Retrieve conversation history for context
+      const conversationHistory = this.store.getConversation(employeeId)
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+      
+      // Prepare the system message with employee training data
+      const systemMessage = {
+        role: "system",
+        content: employee.trainingData || `You are ${employee.name}, a specialized AI for ${employee.role}.`
+      };
+      
+      // Call the OpenAI API
+      const responseContent = await this.callOpenAI([
+        systemMessage,
+        ...conversationHistory.slice(-10) // Use last 10 messages for context
+      ]);
       
       const aiResponse: Message = {
         id: crypto.randomUUID(),
@@ -363,19 +384,64 @@ class AIService {
       return aiResponse;
     } catch (error) {
       console.error("Error generating AI response:", error);
-      toast.error("Failed to generate response. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to generate response. Please try again.");
+      
+      // Use fallback response in case of API failure
+      const fallbackResponse = this.getFallbackResponse(employee);
+      
+      const aiResponse: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: fallbackResponse,
+        timestamp: new Date()
+      };
+      
+      this.store.addMessage(employeeId, aiResponse);
+      return aiResponse;
+    }
+  }
+
+  // Call OpenAI API
+  private async callOpenAI(messages: any[]): Promise<string> {
+    const apiKey = getApiKey();
+    
+    if (!apiKey) {
+      throw new Error("API key not found");
+    }
+    
+    try {
+      const response = await fetch(`${OPENAI_CONFIG.apiBaseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: OPENAI_CONFIG.model,
+          messages: messages,
+          temperature: OPENAI_CONFIG.temperature,
+          max_tokens: OPENAI_CONFIG.max_tokens,
+          top_p: OPENAI_CONFIG.top_p,
+          frequency_penalty: OPENAI_CONFIG.frequency_penalty,
+          presence_penalty: OPENAI_CONFIG.presence_penalty,
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "Error calling OpenAI API");
+      }
+      
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error("OpenAI API error:", error);
       throw error;
     }
   }
 
-  // Simulated AI response generation
-  private async generateResponse(employee: AIEmployee, content: string): Promise<string> {
-    // In a real app, this would call OpenAI or another LLM
-    // For now, we'll use predefined responses based on employee role
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
+  // Get fallback response in case of API failure
+  private getFallbackResponse(employee: AIEmployee): string {
     switch (employee.role) {
       case 'Legal Research':
         return `Based on my legal research database, I can help with that. The relevant cases include Smith v. Jones (2018) and Walker v. Thompson (2020). These cases established important precedents for this type of situation. Would you like me to provide more detailed analysis?`;

@@ -6,6 +6,7 @@ import { Send, ArrowLeft, Mic, Paperclip, Image, MoreVertical, ThumbsUp, Copy, S
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import aiService, { Message } from '@/services/aiService';
+import { getApiKey } from '@/config/apiConfig';
 
 interface AIEmployeeChatProps {
   name: string;
@@ -23,6 +24,24 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, employeeId, onClose }:
   const [showOptions, setShowOptions] = useState(false);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check if API key is set
+  const [apiKeySet, setApiKeySet] = useState(false);
+  
+  useEffect(() => {
+    const checkApiKey = () => {
+      const apiKey = getApiKey();
+      setApiKeySet(!!apiKey);
+    };
+    
+    checkApiKey();
+    
+    // Check again when component gains focus
+    window.addEventListener('focus', checkApiKey);
+    return () => {
+      window.removeEventListener('focus', checkApiKey);
+    };
+  }, []);
 
   // Load conversation history when component mounts
   useEffect(() => {
@@ -57,6 +76,11 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, employeeId, onClose }:
     e.preventDefault();
     
     if (!inputValue.trim()) return;
+    
+    if (!apiKeySet) {
+      toast.error("Please add your OpenAI API key in Login settings");
+      return;
+    }
     
     // First update the UI with the user message
     const userMessage: Message = {
@@ -271,6 +295,12 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, employeeId, onClose }:
       )}
       
       <div className="p-4 border-t border-white/10 bg-[#150D35]/80 backdrop-blur-sm">
+        {!apiKeySet && (
+          <div className="mb-3 p-2 bg-yellow-600/20 border border-yellow-600/30 rounded-md text-sm text-yellow-200">
+            Please add your OpenAI API key in the Login page to enable chat functionality.
+          </div>
+        )}
+        
         <form onSubmit={handleSendMessage} className="relative">
           <div className="flex items-center space-x-2 mb-2">
             <Button 
@@ -306,13 +336,14 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, employeeId, onClose }:
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder={`Ask ${name} anything...`}
+              placeholder={apiKeySet ? `Ask ${name} anything...` : "Add API key to enable chat"}
               className="flex-1 bg-white/5 border-white/10 focus:border-purple-500 text-white placeholder:text-white/50 rounded-full py-5"
+              disabled={!apiKeySet}
             />
             <Button 
               type="submit" 
               size="icon" 
-              disabled={isTyping || !inputValue.trim()}
+              disabled={isTyping || !inputValue.trim() || !apiKeySet}
               className={`rounded-full bg-gradient-to-r ${bgColor} hover:opacity-90 transition-opacity`}
             >
               <Send className="h-4 w-4" />
