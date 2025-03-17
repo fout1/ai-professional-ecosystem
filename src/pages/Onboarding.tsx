@@ -2,10 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
-import { Gavel, Calculator, Building2, Hammer, Sparkles, Check, ChevronRight } from 'lucide-react';
+import { Gavel, Calculator, Building2, Hammer, Sparkles, Check, ChevronRight, ArrowLeft, ArrowRight, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import aiService, { EnvironmentType } from '@/services/aiService';
+import { storeApiKey } from '@/config/apiConfig';
 
 interface EnvironmentOption {
   id: string;
@@ -22,6 +24,14 @@ const Onboarding = () => {
   const [selectedEnvironment, setSelectedEnvironment] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [environmentName, setEnvironmentName] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  
+  // Additional preferences
+  const [preferredCommunication, setPreferredCommunication] = useState('email');
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
+  const [clientManagementEnabled, setClientManagementEnabled] = useState(true);
+  const [teamSize, setTeamSize] = useState('1-5');
+  const [primaryGoal, setPrimaryGoal] = useState('productivity');
   
   const environments: EnvironmentOption[] = [
     {
@@ -89,17 +99,40 @@ const Onboarding = () => {
   };
   
   const handleContinue = () => {
-    if (!selectedEnvironment) {
+    if (currentStep === 1 && !selectedEnvironment) {
       toast.error('Please select an environment type');
       return;
     }
     
-    setCurrentStep(2);
+    if (currentStep === 2 && !environmentName.trim()) {
+      toast.error('Please enter a name for your environment');
+      return;
+    }
+    
+    if (currentStep === 4 && !apiKey.trim()) {
+      toast.error('Please enter your OpenAI API Key to enable AI employees');
+      return;
+    }
+    
+    if (currentStep < 5) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+  
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
   };
   
   const handleSetupComplete = () => {
     if (!environmentName.trim()) {
       toast.error('Please enter a name for your environment');
+      return;
+    }
+    
+    if (!apiKey.trim()) {
+      toast.error('Please enter your OpenAI API Key to enable AI employees');
       return;
     }
     
@@ -109,12 +142,25 @@ const Onboarding = () => {
       return;
     }
     
-    // Set up the environment in our service
+    // Store API key
+    storeApiKey(apiKey);
+    
+    // Set up the environment in our service with the additional preferences
     aiService.setEnvironment(
       environmentName,
       selectedEnv.gradientClass,
-      selectedEnv.type
+      selectedEnv.type,
+      {
+        preferredCommunication,
+        analyticsEnabled,
+        clientManagementEnabled,
+        teamSize,
+        primaryGoal
+      }
     );
+    
+    // Mark onboarding as completed
+    localStorage.setItem('hasCompletedOnboarding', 'true');
     
     toast.success('Your AI workspace is ready!');
     
@@ -167,14 +213,17 @@ const Onboarding = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="mb-6 flex items-center">
-            <div className={`w-8 h-8 rounded-full ${currentStep >= 1 ? 'bg-purple-600' : 'bg-white/10'} flex items-center justify-center`}>
-              {currentStep > 1 ? <Check className="w-5 h-5 text-white" /> : <span className="text-white font-medium">1</span>}
-            </div>
-            <div className="h-0.5 w-12 bg-white/10 mx-2"></div>
-            <div className={`w-8 h-8 rounded-full ${currentStep >= 2 ? 'bg-purple-600' : 'bg-white/10'} flex items-center justify-center`}>
-              {currentStep > 2 ? <Check className="w-5 h-5 text-white" /> : <span className="text-white font-medium">2</span>}
-            </div>
+          <div className="mb-6 flex items-center justify-center">
+            {[1, 2, 3, 4, 5].map((step) => (
+              <React.Fragment key={step}>
+                <div className={`w-8 h-8 rounded-full ${currentStep >= step ? 'bg-purple-600' : 'bg-white/10'} flex items-center justify-center`}>
+                  {currentStep > step ? <Check className="w-5 h-5 text-white" /> : <span className="text-white font-medium">{step}</span>}
+                </div>
+                {step < 5 && (
+                  <div className="h-0.5 w-8 bg-white/10 mx-2"></div>
+                )}
+              </React.Fragment>
+            ))}
           </div>
           
           {currentStep === 1 && (
@@ -229,8 +278,8 @@ const Onboarding = () => {
               initial="hidden"
               animate="visible"
             >
-              <h2 className="text-xl font-semibold text-white mb-4">Customize your workspace</h2>
-              <p className="text-purple-300 mb-6">Give your AI environment a name</p>
+              <h2 className="text-xl font-semibold text-white mb-4">Name your workspace</h2>
+              <p className="text-purple-300 mb-6">Give your AI environment a custom name</p>
               
               <div className="mb-6">
                 <label htmlFor="environmentName" className="block text-sm font-medium text-purple-300 mb-2">
@@ -245,6 +294,221 @@ const Onboarding = () => {
                   onChange={(e) => setEnvironmentName(e.target.value)}
                 />
               </div>
+              
+              <div className="flex justify-between">
+                <Button 
+                  variant="outline" 
+                  className="border-white/10 text-white"
+                  onClick={handleBack}
+                >
+                  <ArrowLeft className="mr-1 w-4 h-4" />
+                  Back
+                </Button>
+                <Button 
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={handleContinue}
+                >
+                  Continue
+                  <ArrowRight className="ml-1 w-4 h-4" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+          
+          {currentStep === 3 && (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <h2 className="text-xl font-semibold text-white mb-4">Configure your preferences</h2>
+              <p className="text-purple-300 mb-6">Customize how your AI workspace will function</p>
+              
+              <div className="space-y-6 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-purple-300 mb-2">
+                    What is your team size?
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {['1-5', '6-20', '21-100', '100+'].map(size => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setTeamSize(size)}
+                        className={`py-2 px-3 rounded-lg text-sm font-medium ${
+                          teamSize === size 
+                            ? 'bg-purple-600 text-white' 
+                            : 'bg-white/5 text-white hover:bg-white/10'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-purple-300 mb-2">
+                    Preferred communication method
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {['email', 'chat', 'voice'].map(method => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => setPreferredCommunication(method)}
+                        className={`py-2 px-3 rounded-lg text-sm font-medium ${
+                          preferredCommunication === method 
+                            ? 'bg-purple-600 text-white' 
+                            : 'bg-white/5 text-white hover:bg-white/10'
+                        }`}
+                      >
+                        {method.charAt(0).toUpperCase() + method.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-purple-300 mb-2">
+                    What is your primary goal with our platform?
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      { id: 'productivity', label: 'Improve productivity' },
+                      { id: 'quality', label: 'Enhance work quality' },
+                      { id: 'cost', label: 'Reduce costs' },
+                      { id: 'innovation', label: 'Drive innovation' }
+                    ].map(goal => (
+                      <button
+                        key={goal.id}
+                        type="button"
+                        onClick={() => setPrimaryGoal(goal.id)}
+                        className={`py-2 px-3 rounded-lg text-sm font-medium ${
+                          primaryGoal === goal.id 
+                            ? 'bg-purple-600 text-white' 
+                            : 'bg-white/5 text-white hover:bg-white/10'
+                        }`}
+                      >
+                        {goal.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-purple-300">
+                    Enable advanced analytics
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setAnalyticsEnabled(!analyticsEnabled)}
+                    className={`w-12 h-6 rounded-full ${analyticsEnabled ? 'bg-purple-600' : 'bg-white/10'} relative transition-colors`}
+                  >
+                    <span 
+                      className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${analyticsEnabled ? 'right-1' : 'left-1'}`}
+                    ></span>
+                  </button>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-purple-300">
+                    Enable client management
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setClientManagementEnabled(!clientManagementEnabled)}
+                    className={`w-12 h-6 rounded-full ${clientManagementEnabled ? 'bg-purple-600' : 'bg-white/10'} relative transition-colors`}
+                  >
+                    <span 
+                      className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${clientManagementEnabled ? 'right-1' : 'left-1'}`}
+                    ></span>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex justify-between">
+                <Button 
+                  variant="outline" 
+                  className="border-white/10 text-white"
+                  onClick={handleBack}
+                >
+                  <ArrowLeft className="mr-1 w-4 h-4" />
+                  Back
+                </Button>
+                <Button 
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={handleContinue}
+                >
+                  Continue
+                  <ArrowRight className="ml-1 w-4 h-4" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+          
+          {currentStep === 4 && (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <h2 className="text-xl font-semibold text-white mb-4">Connect your OpenAI API Key</h2>
+              <p className="text-purple-300 mb-6">
+                To enable your AI employees, we need your OpenAI API key. 
+                Your key is stored securely on your device and never sent to our servers.
+              </p>
+              
+              <div className="mb-6">
+                <label htmlFor="apiKey" className="flex items-center text-sm font-medium text-purple-300 mb-2">
+                  <Key className="w-4 h-4 mr-1" />
+                  OpenAI API Key
+                </label>
+                <div className="relative">
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder="sk-..."
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-white/10 bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <p className="mt-2 text-xs text-purple-300/70">
+                  Don't have an API key? <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300">Get one from OpenAI</a>
+                </p>
+              </div>
+              
+              <div className="flex justify-between">
+                <Button 
+                  variant="outline" 
+                  className="border-white/10 text-white"
+                  onClick={handleBack}
+                >
+                  <ArrowLeft className="mr-1 w-4 h-4" />
+                  Back
+                </Button>
+                <Button 
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={handleContinue}
+                >
+                  Continue
+                  <ArrowRight className="ml-1 w-4 h-4" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+          
+          {currentStep === 5 && (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <h2 className="text-xl font-semibold text-white mb-4">Your AI Workforce is Ready!</h2>
+              <p className="text-purple-300 mb-6">
+                Based on your selections, we've prepared your customized AI employees.
+              </p>
               
               {selectedEnvironment && (
                 <motion.div 
@@ -332,8 +596,9 @@ const Onboarding = () => {
                 <Button 
                   variant="outline" 
                   className="border-white/10 text-white"
-                  onClick={() => setCurrentStep(1)}
+                  onClick={handleBack}
                 >
+                  <ArrowLeft className="mr-1 w-4 h-4" />
                   Back
                 </Button>
                 <Button 

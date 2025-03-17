@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import { storeApiKey } from '@/config/apiConfig';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -15,7 +14,6 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [apiKey, setApiKey] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -26,11 +24,6 @@ const Login = () => {
       // For demo purposes we're simulating login
       // In a real app, this would validate with a backend
       if (email && password) {
-        // Store the API key securely
-        if (apiKey) {
-          storeApiKey(apiKey);
-        }
-        
         // Store user info in localStorage for this demo
         localStorage.setItem('user', JSON.stringify({ email }));
         
@@ -98,24 +91,6 @@ const Login = () => {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="bg-[#261945] border-[#4B307E] pl-10 placeholder:text-gray-500"
-              />
-              <button 
-                type="button" 
-                onClick={toggleShowPassword}
-                className="absolute right-3 top-3 text-gray-400 hover:text-white"
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-            
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-5 w-5 text-purple-500" />
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="OpenAI API Key (optional)"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
                 className="bg-[#261945] border-[#4B307E] pl-10 placeholder:text-gray-500"
               />
               <button 

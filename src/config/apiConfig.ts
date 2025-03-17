@@ -13,7 +13,7 @@ export const OPENAI_CONFIG = {
 };
 
 // In a production environment, API keys should be stored securely on the server
-// For this demo, we're storing it in localStorage after user login
+// For this demo, we're storing it in localStorage after user setup
 export const storeApiKey = (apiKey: string) => {
   localStorage.setItem('openai_api_key', apiKey);
 };
@@ -21,3 +21,10 @@ export const storeApiKey = (apiKey: string) => {
 export const getApiKey = (): string | null => {
   return localStorage.getItem('openai_api_key');
 };
+
+// Check if API key is set
+export const hasApiKey = (): boolean => {
+  const key = getApiKey();
+  return key !== null && key.trim() !== '';
+};
+
