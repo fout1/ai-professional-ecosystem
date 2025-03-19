@@ -22,8 +22,9 @@ const Layout = ({ children }: LayoutProps) => {
       const parsedUser = JSON.parse(user);
       setUserName(parsedUser.name || parsedUser.email.split('@')[0]);
       
-      const environment = localStorage.getItem('environment');
-      if (!environment) {
+      // Check for environment configuration
+      const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
+      if (hasCompletedOnboarding !== 'true') {
         navigate('/onboarding');
       }
     }

@@ -133,6 +133,9 @@ const Onboarding = () => {
         goals: companyGoals
       }));
       
+      // Set environment for layout to use
+      localStorage.setItem('environment', 'configured');
+      
       // Mark onboarding as completed
       localStorage.setItem('hasCompletedOnboarding', 'true');
       
