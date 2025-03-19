@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Lock, Mail, User, Info } from 'lucide-react';
-import { storeApiKey } from '@/config/apiConfig';
+import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -15,7 +14,6 @@ const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [apiKey, setApiKey] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,11 +36,6 @@ const Signup = () => {
     try {
       // For demo purposes we're simulating signup
       // In a real app, this would send data to a backend
-      
-      // Store the API key securely
-      if (apiKey) {
-        storeApiKey(apiKey);
-      }
       
       // Store user info in localStorage for this demo
       localStorage.setItem('user', JSON.stringify({ name, email }));
@@ -136,23 +129,6 @@ const Signup = () => {
                 required
                 className="bg-[#261945] border-[#4B307E] pl-10 placeholder:text-gray-500"
               />
-            </div>
-            
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-5 w-5 text-purple-500" />
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="OpenAI API Key (optional)"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="bg-[#261945] border-[#4B307E] pl-10 placeholder:text-gray-500"
-              />
-              <div className="absolute right-3 top-3 group">
-                <Info className="h-5 w-5 text-gray-400 cursor-help" />
-                <div className="absolute bottom-full right-0 mb-2 w-64 bg-[#261945] border border-purple-500/30 p-3 rounded-lg text-xs text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity shadow-xl z-50">
-                  Your OpenAI API key is required to use the chat functionality. You can get one from platform.openai.com
-                </div>
-              </div>
             </div>
           </div>
           

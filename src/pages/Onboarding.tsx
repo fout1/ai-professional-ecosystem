@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Sparkles, Users, Bot, BrainCircuit, CheckCircle2, ArrowRight, Code, HandCoins, BarChart, User } from 'lucide-react';
 import { toast } from 'sonner';
 import aiService from '@/services/aiService';
-import { hasApiKey } from '@/config/apiConfig';
 
 const steps = [
   { id: 'welcome', title: 'Welcome', icon: <Sparkles className="w-5 h-5" /> },
@@ -97,9 +96,10 @@ const Onboarding = () => {
   
   const completeOnboarding = () => {
     try {
-      // Save environment info
+      // Save environment info - use localStorage instead of the missing method
       const environmentName = companyIndustry || 'Professional';
-      aiService.setEnvironmentInfo(environmentName, 'bg-gradient-to-br from-purple-500 to-indigo-600');
+      localStorage.setItem('environmentName', environmentName);
+      localStorage.setItem('environmentColor', 'bg-gradient-to-br from-purple-500 to-indigo-600');
       
       // Set up AI employees based on selection
       if (selectedEmployees.length > 0) {
