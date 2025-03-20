@@ -144,7 +144,7 @@ class AIEmployeeStore {
     return this.employees.find(emp => emp.id === id);
   }
 
-  updateEmployee(id: string, updates: Partial<AIEmployee>) {
+  updateEmployee(id: string, updates: Partial<AIEmployee>): AIEmployee | undefined {
     const index = this.employees.findIndex(emp => emp.id === id);
     if (index !== -1) {
       this.employees[index] = { ...this.employees[index], ...updates };
@@ -526,6 +526,11 @@ class AIService {
   // Get an AI Employee by ID
   getEmployeeById(id: string): AIEmployee | undefined {
     return this.employeeStore.getEmployeeById(id);
+  }
+
+  // Update an AI Employee
+  updateEmployee(id: string, updates: Partial<AIEmployee>): AIEmployee | undefined {
+    return this.employeeStore.updateEmployee(id, updates);
   }
 }
 
