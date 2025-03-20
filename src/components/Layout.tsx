@@ -5,6 +5,7 @@ import Sidebar from './Sidebar';
 import { Sparkles, Bell, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { storeApiKey } from '@/config/apiConfig';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [userName, setUserName] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [environmentName, setEnvironmentName] = useState('');
+  const [notifications, setNotifications] = useState<{text: string, time: string}[]>([]);
   
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -40,6 +42,15 @@ const Layout = ({ children }: LayoutProps) => {
         setEnvironmentName(envName);
       }
       
+      // Set the OpenAI API key from localStorage if it exists
+      const apiKey = localStorage.getItem('openai_api_key');
+      if (!apiKey) {
+        // Store the API key if it's not already set
+        // Note: In production, this should be handled by a backend service
+        storeApiKey('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');
+        toast.success("API key has been configured");
+      }
+      
       // Ensure company info is available
       const company = localStorage.getItem('company');
       if (!company && hasCompletedOnboarding === 'true') {
@@ -48,6 +59,14 @@ const Layout = ({ children }: LayoutProps) => {
         localStorage.setItem('hasCompletedOnboarding', 'false');
         navigate('/onboarding');
       }
+
+      // Initialize empty notifications instead of fake ones
+      setNotifications([
+        {
+          text: `Welcome to your ${envName || 'Professional AI'} Workspace!`,
+          time: 'Just now'
+        }
+      ]);
     } catch (error) {
       console.error('Error loading user data:', error);
       toast.error("Error loading your data. Please log in again.");
@@ -70,7 +89,7 @@ const Layout = ({ children }: LayoutProps) => {
             <div className="flex items-center">
               <Sparkles className="w-5 h-5 text-purple-400 mr-2" />
               <h1 className="text-lg font-semibold text-white hidden sm:block">
-                {environmentName ? `${environmentName} Workspace` : 'AI Professional Workspace'}
+                {environmentName ? `${environmentName} Workspace` : 'Professional AI Workspace'}
               </h1>
             </div>
             
@@ -81,7 +100,9 @@ const Layout = ({ children }: LayoutProps) => {
                   className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-purple-300 hover:text-white transition-colors"
                 >
                   <Bell className="w-5 h-5" />
-                  <span className="absolute top-0 right-0 w-2 h-2 bg-purple-500 rounded-full"></span>
+                  {notifications.length > 0 && (
+                    <span className="absolute top-0 right-0 w-2 h-2 bg-purple-500 rounded-full"></span>
+                  )}
                 </button>
                 
                 {showNotifications && (
@@ -90,24 +111,29 @@ const Layout = ({ children }: LayoutProps) => {
                       <h3 className="font-medium text-white">Notifications</h3>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
-                      <div className="p-3 hover:bg-white/5 border-b border-white/10">
-                        <p className="text-sm text-white">Welcome to your AI Professional Workspace!</p>
-                        <p className="text-xs text-purple-300 mt-1">Just now</p>
-                      </div>
-                      <div className="p-3 hover:bg-white/5 border-b border-white/10">
-                        <p className="text-sm text-white">Your AI Employees are ready to help you</p>
-                        <p className="text-xs text-purple-300 mt-1">5 minutes ago</p>
-                      </div>
-                      <div className="p-3 hover:bg-white/5">
-                        <p className="text-sm text-white">Brain AI is ready for document uploads</p>
-                        <p className="text-xs text-purple-300 mt-1">10 minutes ago</p>
-                      </div>
+                      {notifications.length > 0 ? (
+                        notifications.map((notification, index) => (
+                          <div key={index} className="p-3 hover:bg-white/5 border-b border-white/10">
+                            <p className="text-sm text-white">{notification.text}</p>
+                            <p className="text-xs text-purple-300 mt-1">{notification.time}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3 text-center text-white/50">
+                          <p>No notifications yet</p>
+                        </div>
+                      )}
                     </div>
-                    <div className="p-2 border-t border-white/10">
-                      <button className="w-full text-xs text-center p-2 text-purple-400 hover:text-purple-300">
-                        View all notifications
-                      </button>
-                    </div>
+                    {notifications.length > 0 && (
+                      <div className="p-2 border-t border-white/10">
+                        <button 
+                          className="w-full text-xs text-center p-2 text-purple-400 hover:text-purple-300"
+                          onClick={() => setNotifications([])}
+                        >
+                          Clear all notifications
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -118,7 +144,7 @@ const Layout = ({ children }: LayoutProps) => {
                 </div>
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium text-white">{userName}</p>
-                  <p className="text-xs text-purple-300">Free Plan</p>
+                  <p className="text-xs text-purple-300">Pro Plan</p>
                 </div>
               </div>
             </div>

@@ -22,25 +22,19 @@ const Index = () => {
   const [aiEmployees, setAiEmployees] = useState<AIEmployeeType[]>([]);
   const [companyData, setCompanyData] = useState<any>(null);
   const [businessType, setBusinessType] = useState<string>('');
+  const [userStats, setUserStats] = useState({
+    tasks: 0,
+    files: 0,
+    messages: 0,
+    sessions: 0
+  });
   
-  // Sample tasks data
-  const tasks = [
-    { id: '1', title: 'Create customer success metrics', description: 'Set up monitoring KPIs', completed: false, icon: '/placeholder.svg' },
-    { id: '2', title: 'Optimize your website conversion', description: 'Improve landing page', completed: false, icon: '/placeholder.svg' },
-    { id: '3', title: 'Optimize your Google Business Profile', description: 'Update information', completed: false, icon: '/placeholder.svg' },
-  ];
+  // Real tasks data - start with empty array
+  const [tasks, setTasks] = useState<any[]>([]);
   
-  // Sample ideas and questions
-  const ideas = 29;
-  const questions = 8;
-  
-  // Stats
-  const stats = [
-    { label: 'Tasks', value: 24, icon: <Clock className="w-4 h-4 text-white" />, color: 'bg-gradient-to-br from-amber-400 to-orange-500' },
-    { label: 'Files', value: 124, icon: <FileText className="w-4 h-4 text-white" />, color: 'bg-gradient-to-br from-cyan-400 to-blue-500' },
-    { label: 'Messages', value: 74, icon: <MessageSquare className="w-4 h-4 text-white" />, color: 'bg-gradient-to-br from-emerald-400 to-green-500' },
-    { label: 'Sessions', value: 18, icon: <Bot className="w-4 h-4 text-white" />, color: 'bg-gradient-to-br from-pink-400 to-rose-500' },
-  ];
+  // Empty ideas and questions initially
+  const [ideas, setIdeas] = useState(0);
+  const [questions, setQuestions] = useState(0);
   
   useEffect(() => {
     // Check if user is logged in
@@ -92,6 +86,19 @@ const Index = () => {
         // create default employees based on business type
         createDefaultEmployees();
       }
+
+      // Initialize real user stats (starting with zero for now)
+      // In a real app with Supabase, we would fetch these from the database
+      setUserStats({
+        tasks: 0,
+        files: 0,
+        messages: 0,
+        sessions: 0
+      });
+
+      // Initialize empty task list
+      setTasks([]);
+
     } catch (error) {
       console.error('Error loading user preferences:', error);
       toast.error("Error loading your preferences");
@@ -167,8 +174,13 @@ const Index = () => {
     if (aiEmployees.length > 0) {
       toast.success("Question sent to all AI Employees!");
       
-      // In a real app, we would process this with a backend service
-      // For now, just clear the input
+      // Update the message count in stats
+      setUserStats(prev => ({
+        ...prev,
+        messages: prev.messages + 1
+      }));
+      
+      // Clear the input
       setInputValue('');
     } else {
       toast.error("No AI Employees available. Adding some for you...");
@@ -180,6 +192,12 @@ const Index = () => {
     const employee = aiService.getEmployeeById(employeeId);
     if (employee) {
       setActiveChat(employee);
+      
+      // Update session count when starting a chat
+      setUserStats(prev => ({
+        ...prev,
+        sessions: prev.sessions + 1
+      }));
     } else {
       toast.error("Employee not found");
     }
@@ -208,7 +226,6 @@ const Index = () => {
   };
 
   const handleToggleAutomation = (index: number) => {
-    // In a real app, this would toggle the automation status
     toast.success(`Automation ${index === 0 ? 'Social Media' : 'Email'} toggled!`);
   };
   
@@ -263,6 +280,14 @@ const Index = () => {
     }
   };
   
+  // Prepare stats based on real user data
+  const stats = [
+    { label: 'Tasks', value: userStats.tasks, icon: <Clock className="w-4 h-4 text-white" />, color: 'bg-gradient-to-br from-amber-400 to-orange-500' },
+    { label: 'Files', value: userStats.files, icon: <FileText className="w-4 h-4 text-white" />, color: 'bg-gradient-to-br from-cyan-400 to-blue-500' },
+    { label: 'Messages', value: userStats.messages, icon: <MessageSquare className="w-4 h-4 text-white" />, color: 'bg-gradient-to-br from-emerald-400 to-green-500' },
+    { label: 'Sessions', value: userStats.sessions, icon: <Bot className="w-4 h-4 text-white" />, color: 'bg-gradient-to-br from-pink-400 to-rose-500' },
+  ];
+  
   return (
     <Layout>
       <motion.div 
@@ -273,7 +298,7 @@ const Index = () => {
       >
         <motion.div className="mb-8" variants={item}>
           <h1 className="text-2xl font-bold mb-1 text-white flex items-center">
-            {environmentName || 'Professional'} Dashboard
+            {environmentName || 'Professional AI'} Dashboard
             <Sparkles className="w-5 h-5 ml-2 text-purple-400" />
           </h1>
           <p className="text-purple-300">{getPersonalizedGreeting()}</p>
@@ -441,10 +466,10 @@ const Index = () => {
           <motion.div className="lg:col-span-1 space-y-6" variants={item}>
             <DailyTasks tasks={tasks} />
             <BrainAI 
-              snippets={79} 
-              websites={12} 
-              files={8} 
-              name="Aurea" 
+              snippets={0} 
+              websites={0} 
+              files={0} 
+              name={environmentName || "Professional AI"} 
             />
           </motion.div>
         </div>
