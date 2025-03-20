@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Sparkles, Bell, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,12 +14,16 @@ const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const [userName, setUserName] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [environmentName, setEnvironmentName] = useState('');
   
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (!user) {
       navigate('/login');
-    } else {
+      return;
+    }
+    
+    try {
       const parsedUser = JSON.parse(user);
       setUserName(parsedUser.name || parsedUser.email.split('@')[0]);
       
@@ -26,7 +31,28 @@ const Layout = ({ children }: LayoutProps) => {
       const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
       if (hasCompletedOnboarding !== 'true') {
         navigate('/onboarding');
+        return;
       }
+      
+      // Load environment info
+      const envName = localStorage.getItem('environmentName');
+      if (envName) {
+        setEnvironmentName(envName);
+      }
+      
+      // Ensure company info is available
+      const company = localStorage.getItem('company');
+      if (!company && hasCompletedOnboarding === 'true') {
+        // If company data is missing but onboarding is marked complete, we have an inconsistency
+        toast.error("Missing company information. Please complete the setup again.");
+        localStorage.setItem('hasCompletedOnboarding', 'false');
+        navigate('/onboarding');
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      toast.error("Error loading your data. Please log in again.");
+      localStorage.clear();
+      navigate('/login');
     }
   }, [navigate]);
 
@@ -43,7 +69,9 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Sparkles className="w-5 h-5 text-purple-400 mr-2" />
-              <h1 className="text-lg font-semibold text-white hidden sm:block">AI Professional Workspace</h1>
+              <h1 className="text-lg font-semibold text-white hidden sm:block">
+                {environmentName ? `${environmentName} Workspace` : 'AI Professional Workspace'}
+              </h1>
             </div>
             
             <div className="flex items-center space-x-4">

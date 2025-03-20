@@ -8,7 +8,7 @@ import DailyTasks from '@/components/DailyTasks';
 import BrainAI from '@/components/BrainAI';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Lightbulb, MessageSquare, Sparkles, Bot, FileText, BarChart3, Calendar, Clock, PlusCircle } from 'lucide-react';
+import { Send, Lightbulb, MessageSquare, Sparkles, Bot, FileText, Clock, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import aiService, { AIEmployee as AIEmployeeType } from '@/services/aiService';
@@ -20,7 +20,8 @@ const Index = () => {
   const [environmentName, setEnvironmentName] = useState<string>('');
   const [environmentColor, setEnvironmentColor] = useState<string>('');
   const [aiEmployees, setAiEmployees] = useState<AIEmployeeType[]>([]);
-  const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
+  const [companyData, setCompanyData] = useState<any>(null);
+  const [businessType, setBusinessType] = useState<string>('');
   
   // Sample tasks data
   const tasks = [
@@ -49,16 +50,113 @@ const Index = () => {
       return;
     }
     
-    // Load environment and employees data
-    const envInfo = aiService.getEnvironmentInfo();
-    setEnvironmentName(envInfo.name || 'Professional');
-    setEnvironmentColor(envInfo.color || '');
-    
-    const employees = aiService.getAIEmployees();
-    if (employees.length > 0) {
-      setAiEmployees(employees);
+    // Check if onboarding is completed
+    const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
+    if (hasCompletedOnboarding !== 'true') {
+      navigate('/onboarding');
+      return;
     }
+    
+    // Load environment and employees data
+    loadUserPreferences();
   }, [navigate]);
+  
+  const loadUserPreferences = () => {
+    try {
+      // Load environment name
+      const envName = localStorage.getItem('environmentName');
+      if (envName) {
+        setEnvironmentName(envName);
+      }
+      
+      // Load environment color
+      const envColor = localStorage.getItem('environmentColor');
+      if (envColor) {
+        setEnvironmentColor(envColor);
+      }
+      
+      // Load company data
+      const companyStr = localStorage.getItem('company');
+      if (companyStr) {
+        const companyData = JSON.parse(companyStr);
+        setCompanyData(companyData);
+        setBusinessType(companyData.businessType || '');
+      }
+      
+      // Load AI employees
+      const employees = aiService.getAIEmployees();
+      if (employees.length > 0) {
+        setAiEmployees(employees);
+      } else {
+        // If no employees are found, but we should have them (onboarding complete),
+        // create default employees based on business type
+        createDefaultEmployees();
+      }
+    } catch (error) {
+      console.error('Error loading user preferences:', error);
+      toast.error("Error loading your preferences");
+    }
+  };
+  
+  const createDefaultEmployees = () => {
+    // Create default employees based on business type if none exist
+    const company = localStorage.getItem('company');
+    if (!company) return;
+    
+    try {
+      const companyData = JSON.parse(company);
+      const businessType = companyData.businessType || '';
+      
+      let employeeRoles: {name: string, color: string}[] = [];
+      
+      switch (businessType) {
+        case 'startup':
+          employeeRoles = [
+            { name: 'Growth Hacker', color: 'bg-gradient-to-br from-purple-500 to-pink-600' },
+            { name: 'Product Manager', color: 'bg-gradient-to-br from-blue-500 to-indigo-600' }
+          ];
+          break;
+        case 'smb':
+          employeeRoles = [
+            { name: 'Marketing Specialist', color: 'bg-gradient-to-br from-amber-500 to-orange-600' },
+            { name: 'Business Analyst', color: 'bg-gradient-to-br from-emerald-500 to-green-600' }
+          ];
+          break;
+        case 'enterprise':
+          employeeRoles = [
+            { name: 'Corporate Strategist', color: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
+            { name: 'Market Analyst', color: 'bg-gradient-to-br from-rose-500 to-red-600' }
+          ];
+          break;
+        case 'freelancer':
+          employeeRoles = [
+            { name: 'Project Manager', color: 'bg-gradient-to-br from-purple-500 to-pink-600' },
+            { name: 'Content Writer', color: 'bg-gradient-to-br from-amber-500 to-orange-600' }
+          ];
+          break;
+        default:
+          employeeRoles = [
+            { name: 'Research Assistant', color: 'bg-gradient-to-br from-purple-500 to-pink-600' },
+            { name: 'Content Writer', color: 'bg-gradient-to-br from-amber-500 to-orange-600' }
+          ];
+      }
+      
+      // Create the default employees
+      const newEmployees = employeeRoles.map(role => 
+        aiService.addCustomEmployee(
+          role.name,
+          role.name,
+          '/placeholder.svg',
+          role.color
+        )
+      );
+      
+      setAiEmployees(newEmployees);
+      toast.success("Default AI team created based on your business type!");
+    } catch (error) {
+      console.error('Error creating default employees:', error);
+    }
+  };
   
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -73,7 +171,8 @@ const Index = () => {
       // For now, just clear the input
       setInputValue('');
     } else {
-      toast.error("No AI Employees available. Please set up your environment first.");
+      toast.error("No AI Employees available. Adding some for you...");
+      createDefaultEmployees();
     }
   };
   
@@ -146,6 +245,24 @@ const Index = () => {
     show: { y: 0, opacity: 1 }
   };
   
+  // Get a personalized greeting based on business type
+  const getPersonalizedGreeting = () => {
+    if (!businessType) return 'Welcome to your AI Professional workspace';
+    
+    switch (businessType) {
+      case 'startup':
+        return 'Ready to disrupt the market with AI-powered growth';
+      case 'smb':
+        return 'Streamline your business operations with AI assistance';
+      case 'enterprise':
+        return 'Enterprise-grade AI tools to scale your operations';
+      case 'freelancer':
+        return 'Your personal AI team to boost your freelance business';
+      default:
+        return 'Welcome to your AI Professional workspace';
+    }
+  };
+  
   return (
     <Layout>
       <motion.div 
@@ -159,9 +276,10 @@ const Index = () => {
             {environmentName || 'Professional'} Dashboard
             <Sparkles className="w-5 h-5 ml-2 text-purple-400" />
           </h1>
-          <p className="text-purple-300">Welcome to your AI Professional workspace</p>
+          <p className="text-purple-300">{getPersonalizedGreeting()}</p>
         </motion.div>
         
+        {/* Stats section */}
         <motion.div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" variants={item}>
           {stats.map((stat, index) => (
             <div key={index} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex items-center">
@@ -176,6 +294,7 @@ const Index = () => {
           ))}
         </motion.div>
         
+        {/* Input section */}
         <motion.div className="flex justify-center mb-10" variants={item}>
           <div className="w-full max-w-3xl relative">
             <Input
@@ -252,6 +371,7 @@ const Index = () => {
               </div>
             </div>
             
+            {/* Automations section */}
             <motion.div variants={item}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-white">Automations</h2>
