@@ -5,14 +5,12 @@ import {
   Home, 
   Brain, 
   Users, 
-  LayoutDashboard, 
   Calendar, 
   Settings, 
   LogOut,
   Bot,
   Menu,
   X,
-  Briefcase,
   Sparkles,
   MessageCircle,
   FileText
@@ -42,7 +40,7 @@ const Sidebar = () => {
     { path: "/employees", icon: Users, label: "AI Employees" },
     { path: "/brain", icon: Brain, label: "Brain AI" },
     { path: "/calendar", icon: Calendar, label: "Calendar" },
-    { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { path: "/settings", icon: Settings, label: "Settings" },
   ];
   
   // Animation variants

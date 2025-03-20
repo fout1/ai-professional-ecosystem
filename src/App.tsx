@@ -10,6 +10,10 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
+import Settings from "./pages/Settings";
+import AIEmployees from "./pages/AIEmployees";
+import BrainAI from "./pages/BrainAI";
+import Calendar from "./pages/Calendar";
 
 // Create QueryClient outside of the component
 const queryClient = new QueryClient();
@@ -59,7 +63,7 @@ const AppRoutes = () => (
         path="/employees" 
         element={
           <ProtectedRoute>
-            <Index />
+            <AIEmployees />
           </ProtectedRoute>
         } 
       />
@@ -67,7 +71,7 @@ const AppRoutes = () => (
         path="/brain" 
         element={
           <ProtectedRoute>
-            <Index />
+            <BrainAI />
           </ProtectedRoute>
         } 
       />
@@ -75,15 +79,15 @@ const AppRoutes = () => (
         path="/calendar" 
         element={
           <ProtectedRoute>
-            <Index />
+            <Calendar />
           </ProtectedRoute>
         } 
       />
       <Route 
-        path="/dashboard" 
+        path="/settings" 
         element={
           <ProtectedRoute>
-            <Index />
+            <Settings />
           </ProtectedRoute>
         } 
       />
