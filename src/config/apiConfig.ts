@@ -24,3 +24,14 @@ export const getApiKey = () => {
 export const hasApiKey = () => {
   return true; // Always return true since we're using a default key
 };
+
+// OpenAI configuration
+export const OPENAI_CONFIG = {
+  model: "gpt-4o", // Using the latest GPT-4o model
+  temperature: 0.7,
+  max_tokens: 1000,
+  top_p: 1,
+  frequency_penalty: 0,
+  presence_penalty: 0,
+  apiBaseUrl: "https://api.openai.com/v1"
+};
