@@ -17,6 +17,10 @@ const Layout = ({ children }: LayoutProps) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [environmentName, setEnvironmentName] = useState('');
   const [notifications, setNotifications] = useState<{text: string, time: string}[]>([]);
+  const [businessType, setBusinessType] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [companySize, setCompanySize] = useState('');
+  const [userPlan, setUserPlan] = useState('Pro Plan');
   
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -36,6 +40,26 @@ const Layout = ({ children }: LayoutProps) => {
         return;
       }
       
+      // Load company information
+      const company = localStorage.getItem('company');
+      if (company) {
+        const companyData = JSON.parse(company);
+        setCompanyName(companyData.name || '');
+        setBusinessType(companyData.businessType || '');
+        setCompanySize(companyData.size || '');
+        
+        // Set a user plan based on company size
+        if (companyData.size) {
+          if (companyData.size === '201+') {
+            setUserPlan('Enterprise Plan');
+          } else if (companyData.size === '51-200') {
+            setUserPlan('Business Plan');
+          } else if (companyData.size === '11-50') {
+            setUserPlan('Team Plan');
+          }
+        }
+      }
+      
       // Load environment info
       const envName = localStorage.getItem('environmentName');
       if (envName) {
@@ -52,7 +76,6 @@ const Layout = ({ children }: LayoutProps) => {
       }
       
       // Ensure company info is available
-      const company = localStorage.getItem('company');
       if (!company && hasCompletedOnboarding === 'true') {
         // If company data is missing but onboarding is marked complete, we have an inconsistency
         toast.error("Missing company information. Please complete the setup again.");
@@ -60,10 +83,13 @@ const Layout = ({ children }: LayoutProps) => {
         navigate('/onboarding');
       }
 
-      // Initialize empty notifications instead of fake ones
+      // Create personalized welcome message
+      const welcomeMessage = getPersonalizedWelcomeMessage(companyName, businessType, environmentName);
+      
+      // Initialize notifications with personalized welcome
       setNotifications([
         {
-          text: `Welcome to your ${envName || 'Professional AI'} Workspace!`,
+          text: welcomeMessage,
           time: 'Just now'
         }
       ]);
@@ -74,6 +100,29 @@ const Layout = ({ children }: LayoutProps) => {
       navigate('/login');
     }
   }, [navigate]);
+
+  const getPersonalizedWelcomeMessage = (companyName: string, businessType: string, envName: string) => {
+    if (companyName) {
+      return `Welcome to your ${companyName} AI Workspace!`;
+    }
+    
+    if (businessType) {
+      switch (businessType) {
+        case 'startup':
+          return `Welcome to your Startup Growth AI Workspace!`;
+        case 'smb':
+          return `Welcome to your Small Business AI Workspace!`;
+        case 'enterprise':
+          return `Welcome to your Enterprise AI Workspace!`;
+        case 'freelancer':
+          return `Welcome to your Freelance AI Workspace!`;
+        default:
+          return `Welcome to your ${envName || 'Professional AI'} Workspace!`;
+      }
+    }
+    
+    return `Welcome to your ${envName || 'Professional AI'} Workspace!`;
+  };
 
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications);
@@ -89,7 +138,7 @@ const Layout = ({ children }: LayoutProps) => {
             <div className="flex items-center">
               <Sparkles className="w-5 h-5 text-purple-400 mr-2" />
               <h1 className="text-lg font-semibold text-white hidden sm:block">
-                {environmentName ? `${environmentName} Workspace` : 'Professional AI Workspace'}
+                {companyName ? `${companyName}` : environmentName ? `${environmentName} Workspace` : 'Professional AI Workspace'}
               </h1>
             </div>
             
@@ -144,7 +193,7 @@ const Layout = ({ children }: LayoutProps) => {
                 </div>
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium text-white">{userName}</p>
-                  <p className="text-xs text-purple-300">Pro Plan</p>
+                  <p className="text-xs text-purple-300">{userPlan}</p>
                 </div>
               </div>
             </div>

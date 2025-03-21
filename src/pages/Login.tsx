@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, Sparkles } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -15,41 +15,94 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [environmentName, setEnvironmentName] = useState('Professional AI');
+  const [companyName, setCompanyName] = useState('');
+  const [businessType, setBusinessType] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Load environment and company info if available
+    const envName = localStorage.getItem('environmentName');
+    if (envName) {
+      setEnvironmentName(envName);
+    }
+
+    // Load company info
+    const companyStr = localStorage.getItem('company');
+    if (companyStr) {
+      try {
+        const companyData = JSON.parse(companyStr);
+        setCompanyName(companyData.name || '');
+        setBusinessType(companyData.businessType || '');
+      } catch (error) {
+        console.error('Error parsing company data:', error);
+      }
+    }
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email.trim() || !password.trim()) {
+      toast.error('Please enter email and password');
+      return;
+    }
+    
     setIsSubmitting(true);
-
+    
     try {
       // For demo purposes we're simulating login
-      // In a real app, this would validate with a backend
-      if (email && password) {
-        // Store user info in localStorage for this demo
-        localStorage.setItem('user', JSON.stringify({ email }));
-        
-        // Check if user has completed onboarding
-        const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
-        
-        toast.success('Login successful!');
-        
-        // Navigate to onboarding if not completed, otherwise to dashboard
-        if (hasCompletedOnboarding === 'true') {
-          navigate('/dashboard');
-        } else {
-          navigate('/onboarding');
-        }
+      // In a real app, this would be an API call
+      
+      // Store login info
+      const userData = { email, name: email.split('@')[0] };
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+      }
+      
+      toast.success('Login successful!');
+      
+      // Check if onboarding is completed
+      const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
+      
+      // Navigate to dashboard or onboarding
+      if (hasCompletedOnboarding === 'true') {
+        navigate('/');
       } else {
-        toast.error('Please enter both email and password');
+        navigate('/onboarding');
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Login failed. Please try again.');
+      toast.error('Login failed. Please check your credentials.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const toggleShowPassword = () => setShowPassword(!showPassword);
+
+  // Get a personalized welcome message based on business type
+  const getWelcomeMessage = () => {
+    if (companyName) {
+      return `Welcome back to ${companyName}`;
+    }
+    
+    if (!businessType) return 'Sign in to your workspace';
+    
+    switch (businessType) {
+      case 'startup':
+        return 'Welcome back, innovator';
+      case 'smb':
+        return 'Welcome back to your business hub';
+      case 'enterprise':
+        return 'Access your enterprise workspace';
+      case 'freelancer':
+        return 'Welcome to your freelance workspace';
+      default:
+        return 'Sign in to your workspace';
+    }
+  };
 
   return (
     <motion.div 
@@ -65,13 +118,18 @@ const Login = () => {
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
         <div className="mb-8 text-center">
+          <div className="flex justify-center mb-2">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-white" />
+            </div>
+          </div>
           <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">
-            Welcome Back
+            {getWelcomeMessage()}
           </h2>
-          <p className="text-gray-400">Sign in to your professional AI workspace</p>
+          <p className="text-gray-400">{environmentName} Workspace</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-4">
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-5 w-5 text-purple-500" />
@@ -80,6 +138,7 @@ const Login = () => {
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
                 className="bg-[#261945] border-[#4B307E] pl-10 placeholder:text-gray-500"
               />
             </div>
@@ -91,6 +150,7 @@ const Login = () => {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
                 className="bg-[#261945] border-[#4B307E] pl-10 placeholder:text-gray-500"
               />
               <button 
