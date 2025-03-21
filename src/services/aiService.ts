@@ -784,45 +784,22 @@ class AIService {
     return this.employeeStore.addEmployee(newEmployee);
   }
 
-  // Get an AI Employee by ID
-  getEmployeeById(id: string): AIEmployee | undefined {
-    return this.employeeStore.getEmployeeById(id);
-  }
-
-  // Update an AI Employee
-  updateEmployee(id: string, updates: Partial<AIEmployee>): AIEmployee | undefined {
-    return this.employeeStore.updateEmployee(id, updates);
-  }
-
-  // Find the best employee to handle a question
-  findBestEmployeeForQuestion(question: string): AIEmployee | null {
-    const employees = this.employeeStore.getEmployees();
-    return this.analyzer.findBestEmployee(employees, question);
-  }
-
-  // Brain AI functionality
-  getBrainItems(userId: string, type?: 'snippet' | 'website' | 'file'): BrainItem[] {
-    return this.brainStore.getItems(userId, type);
-  }
-  
-  addBrainItem(item: Omit<BrainItem, 'id'>): BrainItem {
-    return this.brainStore.addItem(item);
-  }
-  
-  updateBrainItem(id: string, updates: Partial<BrainItem>): BrainItem | undefined {
-    return this.brainStore.updateItem(id, updates);
-  }
-  
-  deleteBrainItem(id: string): void {
-    this.brainStore.deleteItem(id);
-  }
-  
-  searchBrainItems(userId: string, query: string): BrainItem[] {
-    return this.brainStore.searchItems(userId, query);
-  }
-}
-
-// Create a singleton instance
-const aiService = new AIService();
-
-export default aiService;
+  // Add a custom AI Employee with specialties
+  addCustomEmployeeWithSpecialties(
+    name: string, 
+    role: string, 
+    avatar: string = '/placeholder.svg', 
+    color: string = 'bg-gradient-to-br from-indigo-500 to-blue-600',
+    specialties: string[] = []
+  ): AIEmployee {
+    const { type } = this.employeeStore.getEnvironmentInfo();
+    
+    const newEmployee: AIEmployee = {
+      id: crypto.randomUUID(),
+      name,
+      role,
+      avatar,
+      color,
+      environmentType: type,
+      specialties: specialties,
+      trainingData: `You are a specialized AI for ${role} named ${name}. You assist users with tasks related to ${role
