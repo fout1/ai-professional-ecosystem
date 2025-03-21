@@ -413,6 +413,29 @@ class AIEmployeeStore {
     this.setEmployees(employees);
     return employees;
   }
+
+  addCustomEmployeeWithSpecialties(
+    name: string, 
+    role: string, 
+    avatar: string = '/placeholder.svg', 
+    color: string = 'bg-gradient-to-br from-indigo-500 to-blue-600',
+    specialties: string[] = []
+  ): AIEmployee {
+    const { type } = this.getEnvironmentInfo();
+    
+    const newEmployee: AIEmployee = {
+      id: crypto.randomUUID(),
+      name,
+      role,
+      avatar,
+      color,
+      environmentType: type,
+      specialties: specialties,
+      trainingData: `You are a specialized AI for ${role} named ${name}. You assist users with tasks related to ${role}. ${specialties.length > 0 ? `You have expertise in: ${specialties.join(', ')}.` : ''}`
+    };
+    
+    return this.addEmployee(newEmployee);
+  }
 }
 
 // Singleton instance

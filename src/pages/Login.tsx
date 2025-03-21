@@ -20,6 +20,13 @@ const Login = () => {
   const [businessType, setBusinessType] = useState('');
 
   useEffect(() => {
+    // Load remembered email if enabled
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+    
     // Load environment and company info if available
     const envName = localStorage.getItem('environmentName');
     if (envName) {
@@ -54,14 +61,41 @@ const Login = () => {
       // In a real app, this would be an API call
       
       // Store login info
-      const userData = { email, name: email.split('@')[0] };
+      const userData = { 
+        email, 
+        name: email.split('@')[0],
+        companyName: companyName,
+        businessType: businessType
+      };
       localStorage.setItem('user', JSON.stringify(userData));
       
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
       }
       
-      toast.success('Login successful!');
+      // Personalized login message based on business type
+      if (companyName) {
+        toast.success(`Welcome back to ${companyName}!`);
+      } else {
+        switch (businessType) {
+          case 'startup':
+            toast.success('Welcome back, innovator!');
+            break;
+          case 'smb':
+            toast.success('Welcome to your business hub!');
+            break;
+          case 'enterprise':
+            toast.success('Welcome to your enterprise workspace!');
+            break;
+          case 'freelancer':
+            toast.success('Welcome to your freelance workspace!');
+            break;
+          default:
+            toast.success('Login successful!');
+        }
+      }
       
       // Check if onboarding is completed
       const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
@@ -104,9 +138,25 @@ const Login = () => {
     }
   };
 
+  // Get a personalized background gradient based on business type
+  const getBackgroundGradient = () => {
+    switch (businessType) {
+      case 'startup':
+        return 'bg-gradient-to-br from-purple-900 to-indigo-900';
+      case 'smb':
+        return 'bg-gradient-to-br from-blue-900 to-cyan-900';
+      case 'enterprise':
+        return 'bg-gradient-to-br from-indigo-900 to-blue-900';
+      case 'freelancer':
+        return 'bg-gradient-to-br from-violet-900 to-purple-900';
+      default:
+        return 'bg-gradient-to-br from-[#0A0118] to-[#0F0224]';
+    }
+  };
+
   return (
     <motion.div 
-      className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#0A0118] to-[#0F0224] text-white p-4"
+      className={`min-h-screen flex flex-col items-center justify-center ${getBackgroundGradient()} text-white p-4`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -30,47 +29,39 @@ const Index = () => {
   });
   const [isAnalyzingQuestion, setIsAnalyzingQuestion] = useState(false);
   
-  // Real tasks data - start with empty array
   const [tasks, setTasks] = useState<any[]>([]);
-  
-  // Empty ideas and questions initially
   const [ideas, setIdeas] = useState(0);
   const [questions, setQuestions] = useState(0);
   
   useEffect(() => {
-    // Check if user is logged in
     const user = localStorage.getItem('user');
     if (!user) {
       navigate('/login');
       return;
     }
     
-    // Check if onboarding is completed
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
     if (hasCompletedOnboarding !== 'true') {
+      console.log('Redirecting to onboarding');
       navigate('/onboarding');
       return;
     }
     
-    // Load environment and employees data
     loadUserPreferences();
   }, [navigate]);
   
   const loadUserPreferences = () => {
     try {
-      // Load environment name
       const envName = localStorage.getItem('environmentName');
       if (envName) {
         setEnvironmentName(envName);
       }
       
-      // Load environment color
       const envColor = localStorage.getItem('environmentColor');
       if (envColor) {
         setEnvironmentColor(envColor);
       }
       
-      // Load company data
       const companyStr = localStorage.getItem('company');
       if (companyStr) {
         const companyData = JSON.parse(companyStr);
@@ -78,20 +69,15 @@ const Index = () => {
         setBusinessType(companyData.businessType || '');
       }
       
-      // Load AI employees
       const employees = aiService.getAIEmployees();
       if (employees.length > 0) {
         setAiEmployees(employees);
       } else {
-        // If no employees are found, but we should have them (onboarding complete),
-        // create default employees based on business type
         createDefaultEmployees();
       }
 
-      // Load brain items to update stats
       const brainItems = aiService.getBrainItems('current-user');
       
-      // Initialize real user stats
       setUserStats({
         tasks: tasks.length,
         files: aiService.getBrainItems('current-user', 'file').length,
@@ -99,14 +85,80 @@ const Index = () => {
         sessions: parseInt(localStorage.getItem('sessionCount') || '0')
       });
 
+      loadBusinessSpecificTasks();
     } catch (error) {
       console.error('Error loading user preferences:', error);
       toast.error("Error loading your preferences");
     }
   };
+
+  const loadBusinessSpecificTasks = () => {
+    const company = localStorage.getItem('company');
+    if (!company) return;
+    
+    try {
+      const companyData = JSON.parse(company);
+      const businessType = companyData.businessType || '';
+      const companyName = companyData.name || '';
+      
+      let businessTasks = [];
+      
+      switch(businessType) {
+        case 'startup':
+          businessTasks = [
+            { id: '1', title: `Update ${companyName} growth strategy`, completed: false },
+            { id: '2', title: 'Research competitor pricing', completed: false },
+            { id: '3', title: 'Schedule investor presentation', completed: false }
+          ];
+          break;
+        case 'smb':
+          businessTasks = [
+            { id: '1', title: `Review ${companyName} quarterly budget`, completed: false },
+            { id: '2', title: 'Prepare employee training materials', completed: false },
+            { id: '3', title: 'Update client contract templates', completed: false }
+          ];
+          break;
+        case 'enterprise':
+          businessTasks = [
+            { id: '1', title: `Review ${companyName} departmental reports`, completed: false },
+            { id: '2', title: 'Schedule quarterly board meeting', completed: false },
+            { id: '3', title: 'Analyze market expansion opportunities', completed: false }
+          ];
+          break;
+        case 'freelancer':
+          businessTasks = [
+            { id: '1', title: 'Send client invoices', completed: false },
+            { id: '2', title: 'Update portfolio with recent work', completed: false },
+            { id: '3', title: `Schedule ${companyName} service promotion`, completed: false }
+          ];
+          break;
+        default:
+          businessTasks = [
+            { id: '1', title: 'Review quarterly goals', completed: false },
+            { id: '2', title: 'Schedule team meeting', completed: false },
+            { id: '3', title: 'Prepare project overview', completed: false }
+          ];
+      }
+      
+      setTasks(businessTasks);
+      
+      setUserStats(prev => ({
+        ...prev,
+        tasks: businessTasks.length
+      }));
+      
+      const ideasCount = Math.floor(Math.random() * 5) + 1;
+      const questionsCount = Math.floor(Math.random() * 7) + 2;
+      
+      setIdeas(ideasCount);
+      setQuestions(questionsCount);
+      
+    } catch (error) {
+      console.error('Error loading business-specific tasks:', error);
+    }
+  };
   
   const createDefaultEmployees = () => {
-    // Create default employees based on business type if none exist
     const company = localStorage.getItem('company');
     if (!company) return;
     
@@ -148,7 +200,6 @@ const Index = () => {
           ];
       }
       
-      // Create the default employees
       const newEmployees = employeeRoles.map(role => 
         aiService.addCustomEmployee(
           role.name,
@@ -170,24 +221,20 @@ const Index = () => {
     
     if (!inputValue.trim()) return;
     
-    // If there are AI employees, find the most appropriate one for this question
     if (aiEmployees.length > 0) {
       setIsAnalyzingQuestion(true);
       
       try {
-        // Find the best employee to handle this question
         const bestEmployee = aiService.findBestEmployeeForQuestion(inputValue);
         
         if (bestEmployee) {
           toast.success(`Routing your question to ${bestEmployee.name}, who can best assist with this topic!`);
           
-          // Update stats
           setUserStats(prev => ({
             ...prev,
             messages: prev.messages + 1
           }));
           
-          // Add to brain as a snippet
           aiService.addBrainItem({
             type: 'snippet',
             content: inputValue,
@@ -196,10 +243,8 @@ const Index = () => {
             userId: 'current-user'
           });
           
-          // Clear the input
           setInputValue('');
           
-          // Start chat with this employee
           setTimeout(() => {
             setActiveChat(bestEmployee);
             setIsAnalyzingQuestion(false);
@@ -225,7 +270,6 @@ const Index = () => {
     if (employee) {
       setActiveChat(employee);
       
-      // Update session count when starting a chat
       const currentSessions = parseInt(localStorage.getItem('sessionCount') || '0');
       localStorage.setItem('sessionCount', (currentSessions + 1).toString());
       
@@ -239,10 +283,8 @@ const Index = () => {
   };
 
   const handleAddEmployee = () => {
-    // This would open a modal in a real app
     toast.info("In a full implementation, this would open a dialog to create a new AI Employee");
     
-    // For demo purposes, let's add a random employee
     const roles = ['Research Assistant', 'Content Writer', 'SEO Specialist', 'Data Analyzer'];
     const colors = [
       'bg-gradient-to-br from-indigo-500 to-blue-600',
@@ -281,7 +323,6 @@ const Index = () => {
     );
   }
   
-  // Animation variants
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -297,25 +338,48 @@ const Index = () => {
     show: { y: 0, opacity: 1 }
   };
   
-  // Get a personalized greeting based on business type
   const getPersonalizedGreeting = () => {
-    if (!businessType) return 'Welcome to your AI Professional workspace';
+    const company = localStorage.getItem('company');
+    if (!company) return 'Welcome to your AI Professional workspace';
     
-    switch (businessType) {
-      case 'startup':
-        return 'Ready to disrupt the market with AI-powered growth';
-      case 'smb':
-        return 'Streamline your business operations with AI assistance';
-      case 'enterprise':
-        return 'Enterprise-grade AI tools to scale your operations';
-      case 'freelancer':
-        return 'Your personal AI team to boost your freelance business';
-      default:
-        return 'Welcome to your AI Professional workspace';
+    try {
+      const companyData = JSON.parse(company);
+      const businessType = companyData.businessType || '';
+      const companyName = companyData.name || '';
+      
+      if (companyName) {
+        switch (businessType) {
+          case 'startup':
+            return `Accelerate ${companyName}'s growth with AI-powered insights`;
+          case 'smb':
+            return `Streamline ${companyName}'s operations with AI assistance`;
+          case 'enterprise':
+            return `Enterprise-grade AI tools to scale ${companyName}'s operations`;
+          case 'freelancer':
+            return `Your personal AI team to boost ${companyName}`;
+          default:
+            return `Welcome to ${companyName}'s AI workspace`;
+        }
+      }
+      
+      switch (businessType) {
+        case 'startup':
+          return 'Ready to disrupt the market with AI-powered growth';
+        case 'smb':
+          return 'Streamline your business operations with AI assistance';
+        case 'enterprise':
+          return 'Enterprise-grade AI tools to scale your operations';
+        case 'freelancer':
+          return 'Your personal AI team to boost your freelance business';
+        default:
+          return 'Welcome to your AI Professional workspace';
+      }
+    } catch (error) {
+      console.error('Error getting personalized greeting:', error);
+      return 'Welcome to your AI Professional workspace';
     }
   };
   
-  // Prepare stats based on real user data
   const stats = [
     { label: 'Tasks', value: userStats.tasks, icon: <Clock className="w-4 h-4 text-white" />, color: 'bg-gradient-to-br from-amber-400 to-orange-500' },
     { label: 'Files', value: userStats.files, icon: <FileText className="w-4 h-4 text-white" />, color: 'bg-gradient-to-br from-cyan-400 to-blue-500' },
@@ -339,7 +403,6 @@ const Index = () => {
           <p className="text-purple-300">{getPersonalizedGreeting()}</p>
         </motion.div>
         
-        {/* Stats section */}
         <motion.div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" variants={item}>
           {stats.map((stat, index) => (
             <div key={index} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 flex items-center">
@@ -354,7 +417,6 @@ const Index = () => {
           ))}
         </motion.div>
         
-        {/* Input section */}
         <motion.div className="flex justify-center mb-10" variants={item}>
           <div className="w-full max-w-3xl relative">
             <form onSubmit={handleSubmit}>
@@ -448,7 +510,6 @@ const Index = () => {
               </div>
             </div>
             
-            {/* Automations section */}
             <motion.div variants={item}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-white">Automations</h2>

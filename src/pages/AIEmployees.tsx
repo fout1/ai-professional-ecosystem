@@ -14,15 +14,37 @@ const AIEmployees = () => {
   const [aiEmployees, setAiEmployees] = useState<AIEmployeeType[]>([]);
   const [hoveredEmployee, setHoveredEmployee] = useState<string | null>(null);
   const [environmentName, setEnvironmentName] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [businessType, setBusinessType] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<AIEmployeeType | null>(null);
   const [isTrainerOpen, setIsTrainerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   useEffect(() => {
+    // Check if onboarding is completed
+    const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
+    if (hasCompletedOnboarding !== 'true') {
+      // Redirect to onboarding if not completed
+      window.location.href = '/onboarding';
+      return;
+    }
+
     // Load environment name
     const envName = localStorage.getItem('environmentName');
     if (envName) {
       setEnvironmentName(envName);
+    }
+    
+    // Load company information
+    const companyStr = localStorage.getItem('company');
+    if (companyStr) {
+      try {
+        const companyData = JSON.parse(companyStr);
+        setCompanyName(companyData.name || '');
+        setBusinessType(companyData.businessType || '');
+      } catch (error) {
+        console.error('Error parsing company data:', error);
+      }
     }
     
     // Load AI employees
@@ -58,6 +80,11 @@ const AIEmployees = () => {
               name: 'Product Manager', 
               color: 'bg-gradient-to-br from-blue-500 to-indigo-600',
               avatar: '/lovable-uploads/5ff2a73b-e899-4ad0-bf0b-a3313f5f8b2c.png'
+            },
+            { 
+              name: 'Investment Analyst', 
+              color: 'bg-gradient-to-br from-emerald-500 to-green-600',
+              avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png'
             }
           ];
           break;
@@ -72,6 +99,11 @@ const AIEmployees = () => {
               name: 'Business Analyst', 
               color: 'bg-gradient-to-br from-emerald-500 to-green-600',
               avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png'
+            },
+            { 
+              name: 'Customer Relations', 
+              color: 'bg-gradient-to-br from-blue-500 to-indigo-600',
+              avatar: '/lovable-uploads/bda55609-a29a-4f13-a7ec-1aa2dd23bc93.png'
             }
           ];
           break;
@@ -86,6 +118,11 @@ const AIEmployees = () => {
               name: 'Market Analyst', 
               color: 'bg-gradient-to-br from-rose-500 to-red-600',
               avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png'
+            },
+            { 
+              name: 'Policy Expert', 
+              color: 'bg-gradient-to-br from-purple-500 to-pink-600',
+              avatar: '/lovable-uploads/5ff2a73b-e899-4ad0-bf0b-a3313f5f8b2c.png'
             }
           ];
           break;
@@ -100,6 +137,11 @@ const AIEmployees = () => {
               name: 'Content Writer', 
               color: 'bg-gradient-to-br from-amber-500 to-orange-600',
               avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png'
+            },
+            { 
+              name: 'Client Relationship', 
+              color: 'bg-gradient-to-br from-emerald-500 to-green-600',
+              avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png'
             }
           ];
           break;
@@ -114,22 +156,43 @@ const AIEmployees = () => {
               name: 'Content Writer', 
               color: 'bg-gradient-to-br from-amber-500 to-orange-600',
               avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png'
+            },
+            { 
+              name: 'Data Analyst', 
+              color: 'bg-gradient-to-br from-blue-500 to-indigo-600',
+              avatar: '/lovable-uploads/5ff2a73b-e899-4ad0-bf0b-a3313f5f8b2c.png'
             }
           ];
       }
       
-      // Create the default employees
-      const newEmployees = employeeRoles.map(role => 
-        aiService.addCustomEmployee(
+      // Create the default employees with business-specific specialties
+      const newEmployees = employeeRoles.map(role => {
+        let specialties: string[] = [];
+        
+        // Add business-specific specialties to each role
+        if (businessType === 'startup') {
+          specialties = ['startup growth', 'market fit', 'investment', 'scaling', 'product development'];
+        } else if (businessType === 'smb') {
+          specialties = ['local marketing', 'customer retention', 'operations', 'staff management', 'budgeting'];
+        } else if (businessType === 'enterprise') {
+          specialties = ['corporate strategy', 'market analysis', 'regulatory compliance', 'global operations'];
+        } else if (businessType === 'freelancer') {
+          specialties = ['client management', 'portfolio development', 'time tracking', 'contract negotiation'];
+        } else {
+          specialties = ['research', 'content', 'analysis', 'productivity'];
+        }
+        
+        return aiService.addCustomEmployeeWithSpecialties(
           role.name,
           role.name,
           role.avatar,
-          role.color
-        )
-      );
+          role.color,
+          specialties
+        );
+      });
       
       setAiEmployees(newEmployees);
-      toast.success("AI team created based on your business type!");
+      toast.success(`AI team created for ${companyName || 'your company'}`);
     } catch (error) {
       console.error('Error creating default employees:', error);
     }
@@ -144,13 +207,37 @@ const AIEmployees = () => {
   };
   
   const handleAddEmployee = () => {
-    // For demo purposes, add a random employee
-    const roles = [
+    // For demo purposes, let's get a business-specific employee
+    const businessSpecificRoles = {
+      'startup': [
+        { name: 'Pitch Deck Creator', avatar: '/lovable-uploads/bda55609-a29a-4f13-a7ec-1aa2dd23bc93.png' },
+        { name: 'Investor Relations', avatar: '/lovable-uploads/5ff2a73b-e899-4ad0-bf0b-a3313f5f8b2c.png' }
+      ],
+      'smb': [
+        { name: 'Local SEO Expert', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png' },
+        { name: 'HR Assistant', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png' }
+      ],
+      'enterprise': [
+        { name: 'Compliance Officer', avatar: '/lovable-uploads/bda55609-a29a-4f13-a7ec-1aa2dd23bc93.png' },
+        { name: 'Executive Briefer', avatar: '/lovable-uploads/5ff2a73b-e899-4ad0-bf0b-a3313f5f8b2c.png' }
+      ],
+      'freelancer': [
+        { name: 'Invoice Manager', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png' },
+        { name: 'Lead Generator', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png' }
+      ]
+    };
+    
+    const generalRoles = [
       { name: 'Research Assistant', avatar: '/lovable-uploads/bda55609-a29a-4f13-a7ec-1aa2dd23bc93.png' },
       { name: 'Content Writer', avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png' },
       { name: 'SEO Specialist', avatar: '/lovable-uploads/5ff2a73b-e899-4ad0-bf0b-a3313f5f8b2c.png' },
       { name: 'Data Analyzer', avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png' }
     ];
+    
+    const roles = businessType && businessSpecificRoles[businessType as keyof typeof businessSpecificRoles] 
+      ? businessSpecificRoles[businessType as keyof typeof businessSpecificRoles] 
+      : generalRoles;
+    
     const colors = [
       'bg-gradient-to-br from-indigo-500 to-blue-600',
       'bg-gradient-to-br from-purple-500 to-pink-600',
@@ -161,15 +248,30 @@ const AIEmployees = () => {
     const randomRole = roles[Math.floor(Math.random() * roles.length)];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     
-    const newEmployee = aiService.addCustomEmployee(
+    // Get business-specific specialties
+    let specialties: string[] = [];
+    if (businessType === 'startup') {
+      specialties = ['startup growth', 'market fit', 'investment', 'scaling', 'product development'];
+    } else if (businessType === 'smb') {
+      specialties = ['local marketing', 'customer retention', 'operations', 'staff management', 'budgeting'];
+    } else if (businessType === 'enterprise') {
+      specialties = ['corporate strategy', 'market analysis', 'regulatory compliance', 'global operations'];
+    } else if (businessType === 'freelancer') {
+      specialties = ['client management', 'portfolio development', 'time tracking', 'contract negotiation'];
+    } else {
+      specialties = ['research', 'content', 'analysis', 'productivity'];
+    }
+    
+    const newEmployee = aiService.addCustomEmployeeWithSpecialties(
       randomRole.name, 
       randomRole.name, 
       randomRole.avatar, 
-      randomColor
+      randomColor,
+      specialties
     );
     
     setAiEmployees([...aiEmployees, newEmployee]);
-    toast.success(`Added new ${randomRole.name} to your team!`);
+    toast.success(`Added new ${randomRole.name} to your ${companyName || 'company'} team!`);
   };
   
   const handleCloseTrainer = () => {
@@ -201,6 +303,46 @@ const AIEmployees = () => {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1 }
   };
+
+  // Get business-specific team title
+  const getTeamTitle = () => {
+    if (companyName) {
+      return `${companyName}'s AI Team`;
+    }
+    
+    switch (businessType) {
+      case 'startup':
+        return 'Startup Growth Team';
+      case 'smb':
+        return 'Business Operations Team';
+      case 'enterprise':
+        return 'Enterprise Strategy Team';
+      case 'freelancer':
+        return 'Freelance Support Team';
+      default:
+        return 'AI Team';
+    }
+  };
+
+  // Get business-specific description
+  const getTeamDescription = () => {
+    if (companyName) {
+      switch (businessType) {
+        case 'startup':
+          return `AI assistants tailored for ${companyName}'s growth`;
+        case 'smb':
+          return `AI specialists for ${companyName}'s operations`;
+        case 'enterprise':
+          return `Enterprise-grade AI support for ${companyName}`;
+        case 'freelancer':
+          return `Your AI team to power ${companyName}`;
+        default:
+          return `AI Assistants for ${companyName}`;
+      }
+    }
+    
+    return `Your AI Assistants for ${environmentName || 'Professional AI'}`;
+  };
   
   return (
     <Layout>
@@ -213,8 +355,8 @@ const AIEmployees = () => {
         <motion.div variants={itemVariants} className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-white">AI Team</h1>
-              <p className="text-purple-300">Your AI Assistants for {environmentName || 'Professional AI'}</p>
+              <h1 className="text-2xl font-bold text-white">{getTeamTitle()}</h1>
+              <p className="text-purple-300">{getTeamDescription()}</p>
             </div>
             <div className="flex space-x-3">
               <div className="relative">
