@@ -5,7 +5,7 @@ const API_BASE_URL = 'https://api.openai.com/v1';
 // We're temporarily storing the API key in the frontend
 // WARNING: This is not secure and should be replaced with a Supabase backend
 // This key should be regenerated for security reasons
-const DEFAULT_API_KEY = process.env.OPENAI_API_KEY || '';
+const DEFAULT_API_KEY = '';  // Removed process.env reference which isn't available in browser
 
 export const apiConfig = {
   baseUrl: API_BASE_URL,
