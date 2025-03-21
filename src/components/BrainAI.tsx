@@ -1,12 +1,14 @@
 
-import React, { useState } from 'react';
-import { Brain, FileText, Globe, Plus, ChevronLeft, ChevronRight, Upload, Search, File } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Brain, FileText, Globe, Plus, ChevronLeft, ChevronRight, Upload, Search, File, X, Link, Scissors, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import aiService, { BrainItem } from '@/services/aiService';
 
 interface BrainAIProps {
   snippets: number;
@@ -15,24 +17,29 @@ interface BrainAIProps {
   name: string;
 }
 
-interface BrainItem {
-  id: string;
-  type: 'pdf' | 'doc' | 'website';
-  name: string;
-  date: string;
-}
-
 const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
-  const [uploadType, setUploadType] = useState<'file' | 'website'>('file');
+  const [uploadType, setUploadType] = useState<'file' | 'website' | 'snippet'>('file');
   const [uploadUrl, setUploadUrl] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [brainItems, setBrainItems] = useState<BrainItem[]>([
-    { id: '1', type: 'pdf', name: 'Financial Report.pdf', date: '2 days ago' },
-    { id: '2', type: 'doc', name: 'Project Plan.docx', date: '1 week ago' },
-    { id: '3', type: 'website', name: 'industry-news.com', date: 'Yesterday' },
-  ]);
+  const [snippetTitle, setSnippetTitle] = useState('');
+  const [snippetContent, setSnippetContent] = useState('');
+  const [brainItems, setBrainItems] = useState<BrainItem[]>([]);
+  const [viewItemDialog, setViewItemDialog] = useState(false);
+  const [currentItem, setCurrentItem] = useState<BrainItem | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Load brain items on component mount
+  useEffect(() => {
+    loadBrainItems();
+  }, []);
+  
+  const loadBrainItems = () => {
+    const items = aiService.getBrainItems('current-user');
+    setBrainItems(items);
+  };
   
   const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -42,41 +49,137 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
   };
   
   const handleUpload = () => {
-    if (uploadType === 'website' && uploadUrl) {
-      // In a real app, this would upload the website to the backend
-      const newItem: BrainItem = {
-        id: crypto.randomUUID(),
-        type: 'website',
-        name: uploadUrl.replace(/^https?:\/\//, ''),
-        date: 'Just now'
-      };
-      
-      setBrainItems([newItem, ...brainItems]);
-      toast.success("Website added to Brain successfully!");
-      setShowUploadDialog(false);
-      setUploadUrl('');
-    } else if (uploadType === 'file' && uploadFile) {
-      // In a real app, this would upload the file to the backend
-      const fileType = uploadFile.name.endsWith('.pdf') ? 'pdf' : 'doc';
-      
-      const newItem: BrainItem = {
-        id: crypto.randomUUID(),
-        type: fileType,
-        name: uploadFile.name,
-        date: 'Just now'
-      };
-      
-      setBrainItems([newItem, ...brainItems]);
-      toast.success("File added to Brain successfully!");
-      setShowUploadDialog(false);
-      setUploadFile(null);
-    } else {
-      toast.error("Please provide a valid URL or file");
+    try {
+      if (uploadType === 'website' && uploadUrl) {
+        // Add website to Brain
+        const newItem = aiService.addBrainItem({
+          type: 'website',
+          content: uploadUrl,
+          title: uploadUrl.replace(/^https?:\/\//, ''),
+          date: new Date(),
+          userId: 'current-user',
+        });
+        
+        setBrainItems(prev => [newItem, ...prev]);
+        toast.success("Website added to Brain successfully!");
+        setShowUploadDialog(false);
+        setUploadUrl('');
+      } else if (uploadType === 'file' && uploadFile) {
+        // In a real implementation, this would upload the file to Supabase storage
+        // Here we'll simulate by storing file metadata
+        const fileType = uploadFile.name.endsWith('.pdf') ? 'pdf' : 'doc';
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            // Store file content
+            const fileContent = uploadFile.name + ": This is simulated content for " + uploadFile.name;
+            
+            const newItem = aiService.addBrainItem({
+              type: 'file',
+              content: fileContent,
+              title: uploadFile.name,
+              date: new Date(),
+              userId: 'current-user',
+              fileUrl: 'simulated-url://' + uploadFile.name,
+              fileType
+            });
+            
+            setBrainItems(prev => [newItem, ...prev]);
+            toast.success("File added to Brain successfully!");
+          }
+        };
+        reader.readAsText(uploadFile);
+        
+        setShowUploadDialog(false);
+        setUploadFile(null);
+      } else if (uploadType === 'snippet' && snippetTitle && snippetContent) {
+        // Add snippet to Brain
+        const newItem = aiService.addBrainItem({
+          type: 'snippet',
+          content: snippetContent,
+          title: snippetTitle,
+          date: new Date(),
+          userId: 'current-user',
+        });
+        
+        setBrainItems(prev => [newItem, ...prev]);
+        toast.success("Snippet added to Brain successfully!");
+        setShowUploadDialog(false);
+        setSnippetTitle('');
+        setSnippetContent('');
+      } else {
+        toast.error("Please provide valid information");
+      }
+    } catch (error) {
+      console.error("Error adding to brain:", error);
+      toast.error("Failed to add to Brain. Please try again.");
     }
   };
   
   const handleViewContent = (item: BrainItem) => {
-    toast.info(`Viewing content of ${item.name}`);
+    setCurrentItem(item);
+    setViewItemDialog(true);
+    setIsEditing(false);
+  };
+  
+  const handleSaveEdits = () => {
+    if (!currentItem) return;
+    
+    try {
+      const updatedItem = aiService.updateBrainItem(currentItem.id, {
+        title: currentItem.title,
+        content: currentItem.content
+      });
+      
+      if (updatedItem) {
+        toast.success("Changes saved successfully");
+        setIsEditing(false);
+        loadBrainItems(); // Refresh the list
+      }
+    } catch (error) {
+      console.error("Error saving changes:", error);
+      toast.error("Failed to save changes");
+    }
+  };
+  
+  const handleDeleteItem = () => {
+    if (!currentItem) return;
+    
+    try {
+      aiService.deleteBrainItem(currentItem.id);
+      toast.success("Item deleted successfully");
+      setViewItemDialog(false);
+      setCurrentItem(null);
+      loadBrainItems(); // Refresh the list
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      toast.error("Failed to delete item");
+    }
+  };
+  
+  const handleSearch = () => {
+    if (!searchQuery.trim()) {
+      loadBrainItems(); // Reset to show all items
+      return;
+    }
+    
+    const results = aiService.searchBrainItems('current-user', searchQuery);
+    setBrainItems(results);
+    toast.success(`Found ${results.length} items matching "${searchQuery}"`);
+  };
+  
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'file':
+        return <FileText className="w-4 h-4 text-purple-400" />;
+      case 'website':
+        return <Globe className="w-4 h-4 text-purple-400" />;
+      case 'snippet':
+        return <Scissors className="w-4 h-4 text-purple-400" />;
+      default:
+        return <File className="w-4 h-4 text-purple-400" />;
+    }
   };
   
   return (
@@ -159,22 +262,32 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
           <h4 className="text-sm font-medium">Knowledge Database</h4>
           <p className="text-xs text-purple-300">Search through your Brain content</p>
         </div>
-        <div className="w-32 h-8 flex">
-          <div className="relative w-full">
+        <div className="flex gap-2">
+          <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-purple-400" />
             <input 
               type="text" 
-              className="w-full h-full bg-white/10 rounded-lg border border-white/20 pl-7 pr-2 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500 text-white"
+              className="w-32 h-8 bg-white/10 rounded-lg border border-white/20 pl-7 pr-2 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500 text-white"
               placeholder="Search..."
-              onChange={() => toast.info("Search functionality would be implemented with a backend")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 bg-white/10 border-white/20 hover:bg-white/20 text-white text-xs"
+            onClick={handleSearch}
+          >
+            Search
+          </Button>
         </div>
       </div>
       
       <div className="space-y-2">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-medium text-sm text-white">Recent Uploads</h3>
+          <h3 className="font-medium text-sm text-white">Recent Knowledge</h3>
           <div className="flex space-x-2">
             <button className="p-1 rounded border border-white/10 text-purple-400 hover:bg-white/5">
               <ChevronLeft className="w-3 h-3" />
@@ -186,40 +299,49 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
         </div>
         
         <div className="flex space-x-4 overflow-x-auto pb-2 hide-scrollbar">
-          {brainItems.map((item, index) => (
-            <motion.div 
-              key={item.id}
-              className="p-3 border border-white/10 bg-white/5 rounded-lg w-48 flex flex-col text-white/90"
-              onMouseEnter={() => setHoveredSection(`upload-${index}`)}
-              onMouseLeave={() => setHoveredSection(null)}
-              whileHover={{ y: -2 }}
-            >
-              <div className="flex items-start mb-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-white/10">
-                  <File className="w-4 h-4 text-purple-400" />
+          {brainItems.length > 0 ? (
+            brainItems.map((item, index) => (
+              <motion.div 
+                key={item.id}
+                className="p-3 border border-white/10 bg-white/5 rounded-lg w-48 flex flex-col text-white/90"
+                onMouseEnter={() => setHoveredSection(`upload-${index}`)}
+                onMouseLeave={() => setHoveredSection(null)}
+                whileHover={{ y: -2 }}
+              >
+                <div className="flex items-start mb-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-white/10">
+                    {getTypeIcon(item.type)}
+                  </div>
+                  <div className="ml-2 flex-1">
+                    <h4 className="text-xs font-medium truncate w-32">{item.title}</h4>
+                    <p className="text-[10px] text-purple-300">
+                      {new Date(item.date).toLocaleDateString()} 
+                    </p>
+                  </div>
                 </div>
-                <div className="ml-2 flex-1">
-                  <h4 className="text-xs font-medium truncate w-32">{item.name}</h4>
-                  <p className="text-[10px] text-purple-300">{item.date}</p>
-                </div>
-              </div>
-              
-              {hoveredSection === `upload-${index}` && (
-                <motion.div 
-                  className="mt-auto pt-1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  <button 
-                    className="w-full text-[10px] py-1 bg-white/10 hover:bg-white/20 rounded text-center text-white/80"
-                    onClick={() => handleViewContent(item)}
+                
+                {hoveredSection === `upload-${index}` && (
+                  <motion.div 
+                    className="mt-auto pt-1"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                   >
-                    View content
-                  </button>
-                </motion.div>
-              )}
-            </motion.div>
-          ))}
+                    <button 
+                      className="w-full text-[10px] py-1 bg-white/10 hover:bg-white/20 rounded text-center text-white/80"
+                      onClick={() => handleViewContent(item)}
+                    >
+                      View content
+                    </button>
+                  </motion.div>
+                )}
+              </motion.div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center w-full p-8 border border-dashed border-white/10 rounded-lg">
+              <Brain className="h-8 w-8 text-purple-400 mb-2 opacity-50" />
+              <p className="text-sm text-white/50 text-center">Your Brain is empty. Add some knowledge!</p>
+            </div>
+          )}
         </div>
       </div>
       
@@ -229,7 +351,7 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
           <DialogHeader>
             <DialogTitle>Add to Brain</DialogTitle>
             <DialogDescription className="text-purple-300">
-              Upload a file or website to your Brain AI knowledge base.
+              Upload knowledge to your Brain AI database.
             </DialogDescription>
           </DialogHeader>
           
@@ -249,6 +371,14 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
             >
               <Globe className="w-4 h-4 mr-2" />
               Website
+            </Button>
+            <Button
+              variant="outline"
+              className={`flex-1 ${uploadType === 'snippet' ? 'bg-white/10' : 'bg-transparent'} border-white/10 text-white`}
+              onClick={() => setUploadType('snippet')}
+            >
+              <Scissors className="w-4 h-4 mr-2" />
+              Snippet
             </Button>
           </div>
           
@@ -275,7 +405,7 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
                 )}
               </div>
             </div>
-          ) : (
+          ) : uploadType === 'website' ? (
             <div className="space-y-4 mt-4">
               <div className="space-y-2">
                 <Label htmlFor="website-url" className="text-white">Website URL</Label>
@@ -285,6 +415,29 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
                   className="bg-white/5 border-white/10 text-white"
                   value={uploadUrl}
                   onChange={(e) => setUploadUrl(e.target.value)}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="snippet-title" className="text-white">Snippet Title</Label>
+                <Input
+                  id="snippet-title"
+                  placeholder="Title for your snippet"
+                  className="bg-white/5 border-white/10 text-white"
+                  value={snippetTitle}
+                  onChange={(e) => setSnippetTitle(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="snippet-content" className="text-white">Snippet Content</Label>
+                <Textarea
+                  id="snippet-content"
+                  placeholder="Enter your knowledge snippet here..."
+                  className="bg-white/5 border-white/10 text-white min-h-[100px]"
+                  value={snippetContent}
+                  onChange={(e) => setSnippetContent(e.target.value)}
                 />
               </div>
             </div>
@@ -301,6 +454,129 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
               Upload
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* View/Edit Item Dialog */}
+      <Dialog open={viewItemDialog} onOpenChange={setViewItemDialog}>
+        <DialogContent className="bg-[#1A0D3A] border-white/10 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+          {currentItem && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center">
+                  {getTypeIcon(currentItem.type)}
+                  <span className="ml-2">
+                    {isEditing ? 'Edit' : 'View'} {currentItem.type.charAt(0).toUpperCase() + currentItem.type.slice(1)}
+                  </span>
+                </DialogTitle>
+                <DialogDescription className="text-purple-300">
+                  {new Date(currentItem.date).toLocaleString()}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 mt-2">
+                {isEditing ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-title" className="text-white">Title</Label>
+                      <Input
+                        id="edit-title"
+                        value={currentItem.title}
+                        onChange={(e) => setCurrentItem({...currentItem, title: e.target.value})}
+                        className="bg-white/5 border-white/10 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-content" className="text-white">Content</Label>
+                      <Textarea
+                        id="edit-content"
+                        value={currentItem.content}
+                        onChange={(e) => setCurrentItem({...currentItem, content: e.target.value})}
+                        className="bg-white/5 border-white/10 text-white min-h-[200px]"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                      <h3 className="text-lg font-medium mb-2">{currentItem.title}</h3>
+                      {currentItem.type === 'website' ? (
+                        <div className="flex items-center text-purple-300 mb-3">
+                          <Link className="w-4 h-4 mr-1" />
+                          <a 
+                            href={currentItem.content.startsWith('http') ? currentItem.content : `https://${currentItem.content}`}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm hover:underline"
+                          >
+                            {currentItem.content}
+                          </a>
+                        </div>
+                      ) : (
+                        <pre className="whitespace-pre-wrap bg-white/5 p-4 rounded-lg text-sm text-purple-50 max-h-[300px] overflow-y-auto">
+                          {currentItem.content}
+                        </pre>
+                      )}
+                    </div>
+                    
+                    {currentItem.employeeId && (
+                      <div className="text-sm text-purple-300 italic">
+                        This knowledge is linked to an AI employee.
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              
+              <DialogFooter className="flex justify-between">
+                <div>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteItem}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Delete
+                  </Button>
+                </div>
+                <div className="flex space-x-2">
+                  {isEditing ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="border-white/10 text-white"
+                        onClick={() => setIsEditing(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        className="bg-purple-600 hover:bg-purple-700"
+                        onClick={handleSaveEdits}
+                      >
+                        <Save className="w-4 h-4 mr-1" />
+                        Save Changes
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="border-white/10 text-white"
+                        onClick={() => setViewItemDialog(false)}
+                      >
+                        Close
+                      </Button>
+                      <Button
+                        className="bg-purple-600 hover:bg-purple-700"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        Edit
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

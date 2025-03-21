@@ -8,7 +8,7 @@ import DailyTasks from '@/components/DailyTasks';
 import BrainAI from '@/components/BrainAI';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Lightbulb, MessageSquare, Sparkles, Bot, FileText, Clock, PlusCircle } from 'lucide-react';
+import { Send, Lightbulb, MessageSquare, Sparkles, Bot, FileText, Clock, PlusCircle, Brain } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import aiService, { AIEmployee as AIEmployeeType } from '@/services/aiService';
@@ -28,6 +28,7 @@ const Index = () => {
     messages: 0,
     sessions: 0
   });
+  const [isAnalyzingQuestion, setIsAnalyzingQuestion] = useState(false);
   
   // Real tasks data - start with empty array
   const [tasks, setTasks] = useState<any[]>([]);
@@ -87,17 +88,16 @@ const Index = () => {
         createDefaultEmployees();
       }
 
-      // Initialize real user stats (starting with zero for now)
-      // In a real app with Supabase, we would fetch these from the database
+      // Load brain items to update stats
+      const brainItems = aiService.getBrainItems('current-user');
+      
+      // Initialize real user stats
       setUserStats({
-        tasks: 0,
-        files: 0,
-        messages: 0,
-        sessions: 0
+        tasks: tasks.length,
+        files: aiService.getBrainItems('current-user', 'file').length,
+        messages: employees.reduce((total, emp) => total + aiService.getConversationHistory(emp.id).length, 0),
+        sessions: parseInt(localStorage.getItem('sessionCount') || '0')
       });
-
-      // Initialize empty task list
-      setTasks([]);
 
     } catch (error) {
       console.error('Error loading user preferences:', error);
@@ -170,21 +170,53 @@ const Index = () => {
     
     if (!inputValue.trim()) return;
     
-    // If there are AI employees, distribute the question to all of them
+    // If there are AI employees, find the most appropriate one for this question
     if (aiEmployees.length > 0) {
-      toast.success("Question sent to all AI Employees!");
+      setIsAnalyzingQuestion(true);
       
-      // Update the message count in stats
-      setUserStats(prev => ({
-        ...prev,
-        messages: prev.messages + 1
-      }));
-      
-      // Clear the input
-      setInputValue('');
+      try {
+        // Find the best employee to handle this question
+        const bestEmployee = aiService.findBestEmployeeForQuestion(inputValue);
+        
+        if (bestEmployee) {
+          toast.success(`Routing your question to ${bestEmployee.name}, who can best assist with this topic!`);
+          
+          // Update stats
+          setUserStats(prev => ({
+            ...prev,
+            messages: prev.messages + 1
+          }));
+          
+          // Add to brain as a snippet
+          aiService.addBrainItem({
+            type: 'snippet',
+            content: inputValue,
+            title: `Question: ${inputValue.substring(0, 30)}...`,
+            date: new Date(),
+            userId: 'current-user'
+          });
+          
+          // Clear the input
+          setInputValue('');
+          
+          // Start chat with this employee
+          setTimeout(() => {
+            setActiveChat(bestEmployee);
+            setIsAnalyzingQuestion(false);
+          }, 1500);
+        } else {
+          toast.error("Could not find an appropriate AI employee for your question");
+          setIsAnalyzingQuestion(false);
+        }
+      } catch (error) {
+        console.error("Error routing question:", error);
+        toast.error("Error routing your question");
+        setIsAnalyzingQuestion(false);
+      }
     } else {
       toast.error("No AI Employees available. Adding some for you...");
       createDefaultEmployees();
+      setIsAnalyzingQuestion(false);
     }
   };
   
@@ -194,6 +226,9 @@ const Index = () => {
       setActiveChat(employee);
       
       // Update session count when starting a chat
+      const currentSessions = parseInt(localStorage.getItem('sessionCount') || '0');
+      localStorage.setItem('sessionCount', (currentSessions + 1).toString());
+      
       setUserStats(prev => ({
         ...prev,
         sessions: prev.sessions + 1
@@ -322,19 +357,31 @@ const Index = () => {
         {/* Input section */}
         <motion.div className="flex justify-center mb-10" variants={item}>
           <div className="w-full max-w-3xl relative">
-            <Input
-              className="w-full py-7 pl-6 pr-20 rounded-full border-white/10 bg-white/5 backdrop-blur-md text-white placeholder:text-white/50 shadow-lg focus:border-purple-500"
-              placeholder="What's on your mind today?"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-            />
-            <Button 
-              className="absolute right-2 top-2 rounded-full w-12 h-12 p-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 transition-opacity"
-              size="icon"
-              onClick={() => handleSubmit()}
-            >
-              <Send className="h-5 w-5" />
-            </Button>
+            <form onSubmit={handleSubmit}>
+              <Input
+                className="w-full py-7 pl-6 pr-20 rounded-full border-white/10 bg-white/5 backdrop-blur-md text-white placeholder:text-white/50 shadow-lg focus:border-purple-500"
+                placeholder="What's on your mind today? I'll find the right AI expert for you"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                disabled={isAnalyzingQuestion}
+              />
+              <Button 
+                type="submit"
+                className="absolute right-2 top-2 rounded-full w-12 h-12 p-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 transition-opacity"
+                size="icon"
+                disabled={isAnalyzingQuestion || !inputValue.trim()}
+              >
+                {isAnalyzingQuestion ? (
+                  <motion.div 
+                    className="w-5 h-5 border-2 border-white border-opacity-20 border-t-white rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+              </Button>
+            </form>
             
             <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 flex items-center space-x-4">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white">
@@ -345,6 +392,11 @@ const Index = () => {
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white">
                 <MessageSquare className="w-3.5 h-3.5 text-purple-400" />
                 <span className="text-xs">{questions} new questions</span>
+              </div>
+              
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white">
+                <Brain className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-xs">{userStats.files} knowledge items</span>
               </div>
             </div>
           </div>
@@ -466,9 +518,9 @@ const Index = () => {
           <motion.div className="lg:col-span-1 space-y-6" variants={item}>
             <DailyTasks tasks={tasks} />
             <BrainAI 
-              snippets={0} 
-              websites={0} 
-              files={0} 
+              snippets={aiService.getBrainItems('current-user', 'snippet').length} 
+              websites={aiService.getBrainItems('current-user', 'website').length} 
+              files={aiService.getBrainItems('current-user', 'file').length} 
               name={environmentName || "Professional AI"} 
             />
           </motion.div>

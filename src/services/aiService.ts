@@ -7,6 +7,8 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  attachments?: { type: string, name: string }[];
+  images?: string[];
 }
 
 // Professional environment types
@@ -21,6 +23,20 @@ export interface AIEmployee {
   color: string;
   trainingData?: string; // Additional context for this AI Employee
   environmentType: EnvironmentType;
+  specialties?: string[]; // Topics this employee specializes in
+}
+
+// Brain AI knowledge item
+export interface BrainItem {
+  id: string;
+  type: 'snippet' | 'website' | 'file';
+  content: string;
+  title: string;
+  date: Date;
+  userId: string;
+  employeeId?: string; // Optional link to specific employee
+  fileUrl?: string;
+  fileType?: string;
 }
 
 // Conversation history store
@@ -66,8 +82,84 @@ class ConversationStore {
   }
 }
 
+// Brain AI knowledge store
+class BrainStore {
+  private brainItems: BrainItem[] = [];
+  
+  constructor() {
+    this.loadFromStorage();
+  }
+  
+  private loadFromStorage(): void {
+    const savedItems = localStorage.getItem('brainItems');
+    if (savedItems) {
+      try {
+        const parsedItems = JSON.parse(savedItems);
+        this.brainItems = parsedItems.map((item: any) => ({
+          ...item,
+          date: new Date(item.date)
+        }));
+      } catch (error) {
+        console.error("Error loading brain items:", error);
+        this.brainItems = [];
+      }
+    }
+  }
+  
+  private saveToStorage(): void {
+    localStorage.setItem('brainItems', JSON.stringify(this.brainItems));
+  }
+  
+  getItems(userId: string, type?: 'snippet' | 'website' | 'file'): BrainItem[] {
+    if (type) {
+      return this.brainItems.filter(item => item.userId === userId && item.type === type);
+    }
+    return this.brainItems.filter(item => item.userId === userId);
+  }
+  
+  getItemsByEmployee(employeeId: string): BrainItem[] {
+    return this.brainItems.filter(item => item.employeeId === employeeId);
+  }
+  
+  addItem(item: Omit<BrainItem, 'id'>): BrainItem {
+    const newItem: BrainItem = {
+      ...item,
+      id: crypto.randomUUID()
+    };
+    
+    this.brainItems.push(newItem);
+    this.saveToStorage();
+    return newItem;
+  }
+  
+  updateItem(id: string, updates: Partial<BrainItem>): BrainItem | undefined {
+    const index = this.brainItems.findIndex(item => item.id === id);
+    if (index !== -1) {
+      this.brainItems[index] = { ...this.brainItems[index], ...updates };
+      this.saveToStorage();
+      return this.brainItems[index];
+    }
+    return undefined;
+  }
+  
+  deleteItem(id: string): void {
+    this.brainItems = this.brainItems.filter(item => item.id !== id);
+    this.saveToStorage();
+  }
+  
+  searchItems(userId: string, query: string): BrainItem[] {
+    const lowerQuery = query.toLowerCase();
+    return this.brainItems.filter(
+      item => item.userId === userId && 
+      (item.title.toLowerCase().includes(lowerQuery) || 
+       item.content.toLowerCase().includes(lowerQuery))
+    );
+  }
+}
+
 // Singleton instance
 const conversationStore = new ConversationStore();
+const brainStore = new BrainStore();
 
 // AI Employees storage
 class AIEmployeeStore {
@@ -172,7 +264,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/bda55609-a29a-4f13-a7ec-1aa2dd23bc93.png',
             color: 'bg-gradient-to-br from-indigo-500 to-blue-600',
             trainingData: 'You are a specialized AI for legal research. You have knowledge of case law, statutes, regulations, and legal precedents.',
-            environmentType: 'law'
+            environmentType: 'law',
+            specialties: ['legal research', 'case law', 'statutes', 'regulations', 'legal precedents']
           },
           {
             id: crypto.randomUUID(),
@@ -181,7 +274,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/bda55609-a29a-4f13-a7ec-1aa2dd23bc93.png',
             color: 'bg-gradient-to-br from-violet-500 to-purple-600',
             trainingData: 'You are a specialized AI for drafting and analyzing legal contracts. You understand contract law, common clauses, and best practices.',
-            environmentType: 'law'
+            environmentType: 'law',
+            specialties: ['contracts', 'contract law', 'legal drafting', 'agreements', 'terms and conditions']
           },
           {
             id: crypto.randomUUID(),
@@ -190,7 +284,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/bda55609-a29a-4f13-a7ec-1aa2dd23bc93.png',
             color: 'bg-gradient-to-br from-blue-500 to-cyan-600',
             trainingData: 'You are a specialized AI for analyzing legal documents. You can extract key information, identify risks, and suggest improvements.',
-            environmentType: 'law'
+            environmentType: 'law',
+            specialties: ['document analysis', 'risk assessment', 'legal documents', 'compliance', 'due diligence']
           }
         );
         break;
@@ -204,7 +299,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png',
             color: 'bg-gradient-to-br from-green-500 to-emerald-600',
             trainingData: 'You are a specialized AI for accounting. You understand financial statements, accounting principles, and tax regulations.',
-            environmentType: 'accounting'
+            environmentType: 'accounting',
+            specialties: ['accounting', 'bookkeeping', 'financial statements', 'balance sheets', 'profit and loss']
           },
           {
             id: crypto.randomUUID(),
@@ -213,7 +309,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png',
             color: 'bg-gradient-to-br from-blue-500 to-cyan-600',
             trainingData: 'You are a specialized AI for tax planning and compliance. You understand tax laws, deductions, and filing requirements.',
-            environmentType: 'accounting'
+            environmentType: 'accounting',
+            specialties: ['taxes', 'tax planning', 'tax compliance', 'deductions', 'tax returns', 'tax laws']
           },
           {
             id: crypto.randomUUID(),
@@ -222,7 +319,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/570c8aab-bc26-4753-949a-c6c23830ffc5.png',
             color: 'bg-gradient-to-br from-amber-500 to-orange-600',
             trainingData: 'You are a specialized AI for managing invoices. You can help track, organize, and process invoices and payments.',
-            environmentType: 'accounting'
+            environmentType: 'accounting',
+            specialties: ['invoices', 'billing', 'payments', 'accounts receivable', 'accounts payable']
           }
         );
         break;
@@ -236,7 +334,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png',
             color: 'bg-gradient-to-br from-rose-500 to-pink-600',
             trainingData: 'You are a specialized AI for architectural rendering. You understand 3D visualization, lighting, materials, and presentation techniques.',
-            environmentType: 'architecture'
+            environmentType: 'architecture',
+            specialties: ['rendering', '3d visualization', 'lighting', 'materials', 'presentation']
           },
           {
             id: crypto.randomUUID(),
@@ -245,7 +344,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png',
             color: 'bg-gradient-to-br from-purple-500 to-indigo-600',
             trainingData: 'You are a specialized AI for architectural design. You understand design principles, building codes, and sustainable design practices.',
-            environmentType: 'architecture'
+            environmentType: 'architecture',
+            specialties: ['design', 'building codes', 'sustainability', 'architectural design']
           },
           {
             id: crypto.randomUUID(),
@@ -254,7 +354,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/0897d41e-5a79-425f-a800-0527c6dff105.png',
             color: 'bg-gradient-to-br from-amber-500 to-orange-600',
             trainingData: 'You are a specialized AI for architectural project management. You understand timelines, budgets, resource allocation, and client communication.',
-            environmentType: 'architecture'
+            environmentType: 'architecture',
+            specialties: ['project management', 'timelines', 'budgets', 'resource allocation', 'client communication']
           }
         );
         break;
@@ -268,7 +369,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/5ff2a73b-e899-4ad0-bf0b-a3313f5f8b2c.png',
             color: 'bg-gradient-to-br from-blue-500 to-cyan-600',
             trainingData: 'You are a specialized AI for engineering simulations. You understand physics, materials, and computational methods for simulating real-world phenomena.',
-            environmentType: 'engineering'
+            environmentType: 'engineering',
+            specialties: ['simulation', 'physics', 'materials', 'computational methods']
           },
           {
             id: crypto.randomUUID(),
@@ -277,7 +379,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/5ff2a73b-e899-4ad0-bf0b-a3313f5f8b2c.png',
             color: 'bg-gradient-to-br from-gray-700 to-gray-900',
             trainingData: 'You are a specialized AI for structural engineering. You understand load calculations, material properties, and building safety requirements.',
-            environmentType: 'engineering'
+            environmentType: 'engineering',
+            specialties: ['structural engineering', 'load calculations', 'material properties', 'building safety']
           },
           {
             id: crypto.randomUUID(),
@@ -286,7 +389,8 @@ class AIEmployeeStore {
             avatar: '/lovable-uploads/5ff2a73b-e899-4ad0-bf0b-a3313f5f8b2c.png',
             color: 'bg-gradient-to-br from-amber-500 to-orange-600',
             trainingData: 'You are a specialized AI for engineering project reporting. You can help create comprehensive, accurate technical reports and presentations.',
-            environmentType: 'engineering'
+            environmentType: 'engineering',
+            specialties: ['project reporting', 'technical reports', 'presentations']
           }
         );
         break;
@@ -300,7 +404,8 @@ class AIEmployeeStore {
             avatar: '/placeholder.svg',
             color: 'bg-gradient-to-br from-indigo-500 to-blue-600',
             trainingData: 'You are a general AI assistant. You can help with a variety of tasks and provide information across different domains.',
-            environmentType: 'custom'
+            environmentType: 'custom',
+            specialties: ['general assistance', 'information', 'productivity', 'research']
           }
         );
     }
@@ -313,10 +418,67 @@ class AIEmployeeStore {
 // Singleton instance
 const aiEmployeeStore = new AIEmployeeStore();
 
+// Topic analyzer for routing questions to appropriate employees
+class TopicAnalyzer {
+  private topicKeywords: Record<string, string[]> = {
+    'legal': ['law', 'legal', 'contract', 'attorney', 'lawsuit', 'court', 'rights', 'regulation'],
+    'accounting': ['tax', 'account', 'finance', 'money', 'invoice', 'payment', 'budget', 'expense'],
+    'architecture': ['building', 'design', 'architecture', 'construction', 'blueprint', 'floor plan', 'render'],
+    'engineering': ['engineer', 'simulation', 'structural', 'mechanical', 'electrical', 'system', 'specification'],
+    'marketing': ['campaign', 'advertising', 'social media', 'promotion', 'brand', 'market', 'customer'],
+    'writing': ['content', 'blog', 'article', 'story', 'edit', 'proofread', 'grammar'],
+    'research': ['research', 'analysis', 'data', 'study', 'investigate', 'examine', 'explore'],
+  };
+  
+  analyzeQuestion(question: string): string[] {
+    const lowerQuestion = question.toLowerCase();
+    const detectedTopics: string[] = [];
+    
+    Object.entries(this.topicKeywords).forEach(([topic, keywords]) => {
+      if (keywords.some(keyword => lowerQuestion.includes(keyword.toLowerCase()))) {
+        detectedTopics.push(topic);
+      }
+    });
+    
+    return detectedTopics.length > 0 ? detectedTopics : ['general'];
+  }
+  
+  findBestEmployee(employees: AIEmployee[], question: string): AIEmployee | null {
+    if (employees.length === 0) return null;
+    
+    const topics = this.analyzeQuestion(question);
+    let bestMatch: {employee: AIEmployee, score: number} | null = null;
+    
+    employees.forEach(employee => {
+      if (!employee.specialties) return;
+      
+      let score = 0;
+      topics.forEach(topic => {
+        if (employee.specialties!.includes(topic)) score += 2;
+        
+        // Check if any of the employee's specialties contain this topic keyword
+        employee.specialties!.forEach(specialty => {
+          if (specialty.includes(topic) || topic.includes(specialty)) score += 1;
+        });
+      });
+      
+      if (score > 0 && (!bestMatch || score > bestMatch.score)) {
+        bestMatch = {employee, score};
+      }
+    });
+    
+    return bestMatch ? bestMatch.employee : employees[0]; // Default to first employee if no match
+  }
+}
+
+const topicAnalyzer = new TopicAnalyzer();
+
 // AI Service for chat functionality
 class AIService {
   private store = conversationStore;
   private employeeStore = aiEmployeeStore;
+  private brainStore = brainStore;
+  private analyzer = topicAnalyzer;
 
   constructor() {
     // Initialize if needed
@@ -328,8 +490,34 @@ class AIService {
     return this.store.getConversation(employeeId);
   }
 
+  // Add knowledge to the Brain AI from conversations
+  async addToBrainKnowledge(employeeId: string, content: string): Promise<void> {
+    try {
+      // Extract useful information from the conversation
+      if (content.length > 20) { // Minimum size to consider adding to knowledge base
+        const employee = this.employeeStore.getEmployeeById(employeeId);
+        if (!employee) return;
+        
+        // Create a snippet from the conversation
+        this.brainStore.addItem({
+          type: 'snippet',
+          content: content,
+          title: `Chat with ${employee.name}: ${content.substring(0, 30)}...`,
+          date: new Date(),
+          userId: 'current-user', // In a real app, this would be the actual user ID
+          employeeId: employeeId
+        });
+      }
+    } catch (error) {
+      console.error("Error adding to brain knowledge:", error);
+    }
+  }
+
   // Send a message to an AI Employee and get a response
-  async sendMessage(employeeId: string, content: string): Promise<Message> {
+  async sendMessage(employeeId: string, content: string, attachments?: {
+    files?: File[], 
+    images?: string[]
+  }): Promise<Message> {
     const employee = this.employeeStore.getEmployeeById(employeeId);
     
     if (!employee) {
@@ -341,7 +529,9 @@ class AIService {
       id: crypto.randomUUID(),
       role: 'user',
       content,
-      timestamp: new Date()
+      timestamp: new Date(),
+      attachments: attachments?.files?.map(file => ({ type: 'file', name: file.name })),
+      images: attachments?.images
     };
     
     this.store.addMessage(employeeId, userMessage);
@@ -361,10 +551,20 @@ class AIService {
           content: msg.content
         }));
       
-      // Prepare the system message with employee training data
+      // Get relevant brain knowledge for this employee
+      const brainKnowledge = this.getBrainKnowledgeForEmployee(employeeId);
+      
+      // Prepare the system message with employee training data and brain knowledge
+      let systemPrompt = employee.trainingData || `You are ${employee.name}, a specialized AI for ${employee.role}.`;
+      
+      // Add brain knowledge to the system prompt if available
+      if (brainKnowledge) {
+        systemPrompt += `\n\nKnowledge Base: ${brainKnowledge}`;
+      }
+      
       const systemMessage = {
         role: "system",
-        content: employee.trainingData || `You are ${employee.name}, a specialized AI for ${employee.role}.`
+        content: systemPrompt
       };
       
       // Call the OpenAI API
@@ -381,6 +581,10 @@ class AIService {
       };
       
       this.store.addMessage(employeeId, aiResponse);
+      
+      // Learn from this interaction
+      await this.addToBrainKnowledge(employeeId, `Q: ${content}\nA: ${responseContent}`);
+      
       return aiResponse;
     } catch (error) {
       console.error("Error generating AI response:", error);
@@ -398,6 +602,40 @@ class AIService {
       
       this.store.addMessage(employeeId, aiResponse);
       return aiResponse;
+    }
+  }
+
+  // Get brain knowledge relevant to an employee
+  private getBrainKnowledgeForEmployee(employeeId: string): string {
+    try {
+      const employee = this.employeeStore.getEmployeeById(employeeId);
+      if (!employee) return '';
+      
+      // Get items specifically for this employee
+      const employeeItems = this.brainStore.getItemsByEmployee(employeeId);
+      
+      // Get items that match the employee's specialties
+      const specialtyItems = employee.specialties ? 
+        this.brainStore.getItems('current-user').filter(item => {
+          return employee.specialties!.some(specialty => 
+            item.title.toLowerCase().includes(specialty.toLowerCase()) || 
+            item.content.toLowerCase().includes(specialty.toLowerCase())
+          );
+        }) : [];
+      
+      // Combine and deduplicate items
+      const allItems = [...employeeItems, ...specialtyItems];
+      const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values());
+      
+      // Extract knowledge from brain items
+      const knowledge = uniqueItems.map(item => {
+        return `${item.title}:\n${item.content.substring(0, 500)}${item.content.length > 500 ? '...' : ''}`;
+      }).join('\n\n');
+      
+      return knowledge;
+    } catch (error) {
+      console.error("Error getting brain knowledge:", error);
+      return '';
     }
   }
 
@@ -531,6 +769,33 @@ class AIService {
   // Update an AI Employee
   updateEmployee(id: string, updates: Partial<AIEmployee>): AIEmployee | undefined {
     return this.employeeStore.updateEmployee(id, updates);
+  }
+
+  // Find the best employee to handle a question
+  findBestEmployeeForQuestion(question: string): AIEmployee | null {
+    const employees = this.employeeStore.getEmployees();
+    return this.analyzer.findBestEmployee(employees, question);
+  }
+
+  // Brain AI functionality
+  getBrainItems(userId: string, type?: 'snippet' | 'website' | 'file'): BrainItem[] {
+    return this.brainStore.getItems(userId, type);
+  }
+  
+  addBrainItem(item: Omit<BrainItem, 'id'>): BrainItem {
+    return this.brainStore.addItem(item);
+  }
+  
+  updateBrainItem(id: string, updates: Partial<BrainItem>): BrainItem | undefined {
+    return this.brainStore.updateItem(id, updates);
+  }
+  
+  deleteBrainItem(id: string): void {
+    this.brainStore.deleteItem(id);
+  }
+  
+  searchBrainItems(userId: string, query: string): BrainItem[] {
+    return this.brainStore.searchItems(userId, query);
   }
 }
 
