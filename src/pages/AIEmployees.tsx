@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -21,21 +20,17 @@ const AIEmployees = () => {
   const [searchQuery, setSearchQuery] = useState('');
   
   useEffect(() => {
-    // Check if onboarding is completed
     const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
     if (hasCompletedOnboarding !== 'true') {
-      // Redirect to onboarding if not completed
       window.location.href = '/onboarding';
       return;
     }
 
-    // Load environment name
     const envName = localStorage.getItem('environmentName');
     if (envName) {
       setEnvironmentName(envName);
     }
     
-    // Load company information
     const companyStr = localStorage.getItem('company');
     if (companyStr) {
       try {
@@ -47,18 +42,15 @@ const AIEmployees = () => {
       }
     }
     
-    // Load AI employees
-    const employees = aiService.getAIEmployees();
+    const employees = aiService.getEmployees();
     setAiEmployees(employees);
     
     if (employees.length === 0) {
-      // If no employees, create defaults
       createDefaultEmployees();
     }
   }, []);
   
   const createDefaultEmployees = () => {
-    // Create default employees based on business type if none exist
     const company = localStorage.getItem('company');
     if (!company) return;
     
@@ -165,11 +157,9 @@ const AIEmployees = () => {
           ];
       }
       
-      // Create the default employees with business-specific specialties
       const newEmployees = employeeRoles.map(role => {
         let specialties: string[] = [];
         
-        // Add business-specific specialties to each role
         if (businessType === 'startup') {
           specialties = ['startup growth', 'market fit', 'investment', 'scaling', 'product development'];
         } else if (businessType === 'smb') {
@@ -207,7 +197,6 @@ const AIEmployees = () => {
   };
   
   const handleAddEmployee = () => {
-    // For demo purposes, let's get a business-specific employee
     const businessSpecificRoles = {
       'startup': [
         { name: 'Pitch Deck Creator', avatar: '/lovable-uploads/bda55609-a29a-4f13-a7ec-1aa2dd23bc93.png' },
@@ -248,7 +237,6 @@ const AIEmployees = () => {
     const randomRole = roles[Math.floor(Math.random() * roles.length)];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     
-    // Get business-specific specialties
     let specialties: string[] = [];
     if (businessType === 'startup') {
       specialties = ['startup growth', 'market fit', 'investment', 'scaling', 'product development'];
@@ -276,8 +264,7 @@ const AIEmployees = () => {
   
   const handleCloseTrainer = () => {
     setIsTrainerOpen(false);
-    // Refresh the employees list
-    const employees = aiService.getAIEmployees();
+    const employees = aiService.getEmployees();
     setAiEmployees(employees);
   };
 
@@ -288,7 +275,6 @@ const AIEmployees = () => {
       )
     : aiEmployees;
   
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -304,7 +290,6 @@ const AIEmployees = () => {
     visible: { y: 0, opacity: 1 }
   };
 
-  // Get business-specific team title
   const getTeamTitle = () => {
     if (companyName) {
       return `${companyName}'s AI Team`;
@@ -324,7 +309,6 @@ const AIEmployees = () => {
     }
   };
 
-  // Get business-specific description
   const getTeamDescription = () => {
     if (companyName) {
       switch (businessType) {

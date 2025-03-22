@@ -35,6 +35,8 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
   const [editingItem, setEditingItem] = useState<BrainItem | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     loadBrainItems();

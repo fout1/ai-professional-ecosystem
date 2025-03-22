@@ -621,7 +621,7 @@ class AIService {
         throw new Error("OpenAI API key not found. Please add your API key in the settings.");
       }
       
-      const response = await fetch(OPENAI_CONFIG.apiUrl, {
+      const response = await fetch(OPENAI_CONFIG.apiBaseUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -630,7 +630,7 @@ class AIService {
         body: JSON.stringify({
           model: OPENAI_CONFIG.model,
           messages: messages,
-          max_tokens: OPENAI_CONFIG.maxTokens,
+          max_tokens: OPENAI_CONFIG.max_tokens,
           temperature: OPENAI_CONFIG.temperature,
         }),
       });
@@ -652,6 +652,37 @@ class AIService {
 
   private getFallbackResponse(employee: AIEmployee): string {
     return `I'm currently experiencing issues connecting to the AI service. Please try again later. In the meantime, I can assist you with basic information about ${employee.role}.`;
+  }
+
+  // Add a method to find the best employee for a question
+  findBestEmployeeForQuestion(question: string): AIEmployee | null {
+    const employees = this.employeeStore.getEmployees();
+    if (employees.length === 0) return null;
+    
+    // For now, just return a random employee
+    // In a real implementation, this would analyze the question and match it with employee specialties
+    return employees[Math.floor(Math.random() * employees.length)];
+  }
+
+  // Alias method for backward compatibility
+  getAIEmployees(): AIEmployee[] {
+    return this.getEmployees();
+  }
+
+  // Alias method for backward compatibility
+  getEmployeeById(id: string): AIEmployee | undefined {
+    return this.getEmployees().find(emp => emp.id === id);
+  }
+
+  // Alias method for backward compatibility
+  addCustomEmployeeWithSpecialties(
+    name: string, 
+    role: string, 
+    avatar: string = '/placeholder.svg', 
+    color: string = 'bg-gradient-to-br from-indigo-500 to-blue-600',
+    specialties: string[] = []
+  ): AIEmployee {
+    return this.addWithSpecialties(name, role, avatar, color, specialties);
   }
 }
 
