@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
@@ -93,10 +94,34 @@ const Layout = ({ children }: LayoutProps) => {
   }, [navigate]);
 
   useEffect(() => {
-    if (isMobile && mobileMenuOpen) {
+    // Close mobile menu when navigating
+    if (mobileMenuOpen) {
       setMobileMenuOpen(false);
     }
-  }, [navigate, isMobile]);
+    
+    // Add body class to prevent scrolling when mobile menu is open
+    document.body.classList.toggle('overflow-hidden', mobileMenuOpen);
+    
+    // Cleanup function
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, [navigate, mobileMenuOpen]);
+
+  // Close notifications when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (showNotifications && !target.closest('.notifications-panel')) {
+        setShowNotifications(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
 
   const getPersonalizedWelcomeMessage = (companyName: string, businessType: string, envName: string) => {
     if (companyName) {
@@ -131,36 +156,40 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-[#150D35] to-[#1D1148]">
+      {/* Mobile overlay */}
       {isMobile && mobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-smooth"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
       
+      {/* Sidebar */}
       <div className={cn(
-        "transition-smooth responsive-sidebar",
-        isMobile ? (mobileMenuOpen ? "translate-x-0" : "-translate-x-full") : "ml-0"
+        "transition-all duration-300 ease-out responsive-sidebar shadow-xl z-50",
+        isMobile ? (mobileMenuOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0") : "translate-x-0 opacity-100"
       )}>
-        <Sidebar mobileMenuOpen={mobileMenuOpen} />
+        <Sidebar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       </div>
       
+      {/* Main content */}
       <div className={cn(
-        "flex-1 transition-smooth",
+        "flex-1 transition-all duration-300 ease-out",
         isMobile ? "ml-0" : "ml-[72px] lg:ml-[240px]"
       )}>
-        <header className="sticky top-0 z-20 bg-[#150D35]/80 backdrop-blur-sm border-b border-white/10 mobile-padding">
+        <header className="sticky top-0 z-20 bg-[#150D35]/80 backdrop-blur-sm border-b border-white/10 py-3 px-4 mobile-padding">
           <div className="flex items-center justify-between">
             {isMobile && (
               <button 
                 onClick={toggleMobileMenu}
-                className="p-2 mr-2 rounded-full bg-white/5 hover:bg-white/10 text-purple-300"
+                className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-purple-300 transition-colors"
+                aria-label="Toggle menu"
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
               </button>
             )}
             <div className="flex items-center">
-              <Sparkles className="w-5 h-5 text-purple-400 mr-2" />
+              <Sparkles className="w-5 h-5 text-purple-400 mr-2 animate-pulse" />
               <h1 className="text-lg font-semibold text-white hidden sm:block">
                 {companyName ? `${companyName}` : environmentName ? `${environmentName} Workspace` : 'Professional AI Workspace'}
               </h1>
@@ -170,7 +199,7 @@ const Layout = ({ children }: LayoutProps) => {
             </div>
             
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <div className="relative">
+              <div className="relative notifications-panel">
                 <button 
                   onClick={toggleNotifications}
                   className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-purple-300 hover:text-white transition-colors"
@@ -182,7 +211,7 @@ const Layout = ({ children }: LayoutProps) => {
                 </button>
                 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-[280px] sm:w-80 bg-[#1A0D3A] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden">
+                  <div className="absolute right-0 mt-2 w-[280px] sm:w-80 bg-[#1A0D3A] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden transition-smooth notifications-panel">
                     <div className="p-3 border-b border-white/10">
                       <h3 className="font-medium text-white mobile-text">Notifications</h3>
                     </div>
@@ -227,9 +256,9 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         </header>
         
-        <div className="mobile-padding">
+        <main className="mobile-container py-4 sm:py-6">
           {children}
-        </div>
+        </main>
       </div>
     </div>
   );

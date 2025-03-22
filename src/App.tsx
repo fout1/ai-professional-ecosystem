@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useEffect } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import AIEmployees from "./pages/AIEmployees";
 import BrainAI from "./pages/BrainAI";
 import Calendar from "./pages/Calendar";
+import { toast } from "sonner";
 
 // Create QueryClient outside of the component
 const queryClient = new QueryClient();
@@ -21,6 +22,14 @@ const queryClient = new QueryClient();
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = localStorage.getItem('user') !== null;
+  
+  useEffect(() => {
+    // Clear onboarding flag to ensure it shows for testing
+    if (window.location.search.includes('reset-onboarding')) {
+      localStorage.removeItem('hasCompletedOnboarding');
+      toast.success('Onboarding has been reset');
+    }
+  }, []);
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -30,7 +39,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding') === 'true';
   
   // If not completed onboarding, redirect to onboarding
+  // Important: Make sure we force redirect to onboarding from any other page
   if (!hasCompletedOnboarding && window.location.pathname !== '/onboarding') {
+    console.log('Redirecting to onboarding - not completed yet');
     return <Navigate to="/onboarding" replace />;
   }
   

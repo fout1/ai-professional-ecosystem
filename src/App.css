@@ -55,11 +55,13 @@
   padding-left: 1rem;
   margin-right: auto;
   margin-left: auto;
+  max-width: 100%;
 }
 
 /* Responsive text */
 h1 {
   font-size: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 @media (min-width: 640px) {
@@ -130,4 +132,184 @@ a {
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 300ms, transform 300ms;
+}
+
+/* Mobile-optimized styles */
+.mobile-friendly-padding {
+  padding: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .mobile-friendly-padding {
+    padding: 1.5rem;
+  }
+}
+
+/* Smooth transitions */
+.transition-all-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mobile sidebar animation */
+.mobile-sidebar-open {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.mobile-sidebar-closed {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+/* Improved tap targets for mobile */
+.mobile-tap-target {
+  min-height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive grid layout */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+/* Fixed bottom navigation for mobile */
+.mobile-bottom-nav {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(26, 16, 49, 0.8);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 50;
+  justify-content: space-around;
+  padding: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .mobile-bottom-nav {
+    display: none;
+  }
+}
+
+/* App shell skeleton loading UI */
+.skeleton-loading {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.375rem;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Safe area inset for notched devices */
+.safe-area-inset {
+  padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+  padding-top: env(safe-area-inset-top, 0.5rem);
+  padding-left: env(safe-area-inset-left, 0.5rem);
+  padding-right: env(safe-area-inset-right, 0.5rem);
+}
+
+/* Mobile device rotation handling */
+@media screen and (orientation: portrait) {
+  .portrait-only {
+    display: block;
+  }
+  
+  .landscape-only {
+    display: none;
+  }
+}
+
+@media screen and (orientation: landscape) {
+  .portrait-only {
+    display: none;
+  }
+  
+  .landscape-only {
+    display: block;
+  }
+}
+
+/* Enhanced mobile scrolling */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Adaptive font sizes */
+.adaptive-text-xs {
+  font-size: 0.75rem;
+}
+
+.adaptive-text-sm {
+  font-size: 0.875rem;
+}
+
+.adaptive-text-base {
+  font-size: 1rem;
+}
+
+.adaptive-text-lg {
+  font-size: 1.125rem;
+}
+
+.adaptive-text-xl {
+  font-size: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .adaptive-text-xs {
+    font-size: 0.8125rem;
+  }
+  
+  .adaptive-text-sm {
+    font-size: 0.9375rem;
+  }
+  
+  .adaptive-text-base {
+    font-size: 1.0625rem;
+  }
+  
+  .adaptive-text-lg {
+    font-size: 1.25rem;
+  }
+  
+  .adaptive-text-xl {
+    font-size: 1.5rem;
+  }
 }

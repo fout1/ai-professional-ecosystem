@@ -20,6 +20,9 @@ const Login = () => {
   const [businessType, setBusinessType] = useState('');
 
   useEffect(() => {
+    // Reset onboarding status for testing
+    //localStorage.removeItem('hasCompletedOnboarding');
+    
     // Load remembered email if enabled
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     if (rememberedEmail) {
@@ -69,6 +72,9 @@ const Login = () => {
       };
       localStorage.setItem('user', JSON.stringify(userData));
       
+      // Clear onboarding status to ensure it shows for new users
+      localStorage.removeItem('hasCompletedOnboarding');
+      
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
       } else {
@@ -97,15 +103,8 @@ const Login = () => {
         }
       }
       
-      // Check if onboarding is completed
-      const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
-      
-      // Navigate to dashboard or onboarding
-      if (hasCompletedOnboarding === 'true') {
-        navigate('/');
-      } else {
-        navigate('/onboarding');
-      }
+      // Navigate to onboarding for all new users
+      navigate('/onboarding');
     } catch (error) {
       console.error('Login error:', error);
       toast.error('Login failed. Please check your credentials.');
@@ -156,31 +155,31 @@ const Login = () => {
 
   return (
     <motion.div 
-      className={`min-h-screen flex flex-col items-center justify-center ${getBackgroundGradient()} text-white p-4`}
+      className={`min-h-screen flex flex-col items-center justify-center ${getBackgroundGradient()} text-white p-4 mobile-container`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <motion.div 
-        className="w-full max-w-md bg-[#1A1031]/80 rounded-2xl p-8 backdrop-blur-lg border border-purple-500/20 shadow-2xl"
+        className="w-full max-w-md bg-[#1A1031]/80 rounded-2xl p-6 sm:p-8 backdrop-blur-lg border border-purple-500/20 shadow-2xl mobile-card"
         initial={{ y: 20 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
-        <div className="mb-8 text-center">
+        <div className="mb-6 sm:mb-8 text-center">
           <div className="flex justify-center mb-2">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center animate-float">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2">
+          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-2 mobile-heading">
             {getWelcomeMessage()}
           </h2>
-          <p className="text-gray-400">{environmentName} Workspace</p>
+          <p className="text-gray-400 mobile-text">{environmentName} Workspace</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+          <div className="space-y-3 sm:space-y-4">
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-5 w-5 text-purple-500" />
               <Input
@@ -189,7 +188,7 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-[#261945] border-[#4B307E] pl-10 placeholder:text-gray-500"
+                className="bg-[#261945] border-[#4B307E] pl-10 placeholder:text-gray-500 mobile-padding h-12"
               />
             </div>
             
@@ -201,7 +200,7 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-[#261945] border-[#4B307E] pl-10 placeholder:text-gray-500"
+                className="bg-[#261945] border-[#4B307E] pl-10 placeholder:text-gray-500 mobile-padding h-12"
               />
               <button 
                 type="button" 
@@ -213,7 +212,7 @@ const Login = () => {
             </div>
           </div>
           
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center space-x-2">
               <Checkbox 
                 id="remember" 
@@ -223,12 +222,12 @@ const Login = () => {
               />
               <label 
                 htmlFor="remember" 
-                className="text-sm text-gray-400 cursor-pointer"
+                className="text-sm text-gray-400 cursor-pointer mobile-text"
               >
                 Remember me
               </label>
             </div>
-            <Link to="#" className="text-sm text-purple-400 hover:text-purple-300">
+            <Link to="#" className="text-sm text-purple-400 hover:text-purple-300 mobile-text">
               Forgot password?
             </Link>
           </div>
@@ -236,12 +235,12 @@ const Login = () => {
           <Button 
             type="submit" 
             disabled={isSubmitting}
-            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-2 rounded-md transition-all duration-300 shadow-lg shadow-purple-900/30"
+            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white py-2 rounded-md transition-all duration-300 shadow-lg shadow-purple-900/30 h-12"
           >
             {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
           
-          <div className="text-center text-sm text-gray-400">
+          <div className="text-center text-sm text-gray-400 mobile-text">
             Don't have an account?{" "}
             <Link to="/signup" className="text-purple-400 hover:text-purple-300">
               Sign up
