@@ -1,11 +1,11 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { Sparkles, Bell, User } from 'lucide-react';
+import { Sparkles, Bell, User, Menu as MenuIcon, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { storeApiKey } from '@/config/apiConfig';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,6 +13,7 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [userName, setUserName] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [environmentName, setEnvironmentName] = useState('');
@@ -21,6 +22,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [companyName, setCompanyName] = useState('');
   const [companySize, setCompanySize] = useState('');
   const [userPlan, setUserPlan] = useState('Pro Plan');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -33,14 +35,12 @@ const Layout = ({ children }: LayoutProps) => {
       const parsedUser = JSON.parse(user);
       setUserName(parsedUser.name || parsedUser.email.split('@')[0]);
       
-      // Check for environment configuration
       const hasCompletedOnboarding = localStorage.getItem('hasCompletedOnboarding');
       if (hasCompletedOnboarding !== 'true') {
         navigate('/onboarding');
         return;
       }
       
-      // Load company information
       const company = localStorage.getItem('company');
       if (company) {
         const companyData = JSON.parse(company);
@@ -48,7 +48,6 @@ const Layout = ({ children }: LayoutProps) => {
         setBusinessType(companyData.businessType || '');
         setCompanySize(companyData.size || '');
         
-        // Set a user plan based on company size
         if (companyData.size) {
           if (companyData.size === '201+') {
             setUserPlan('Enterprise Plan');
@@ -60,33 +59,25 @@ const Layout = ({ children }: LayoutProps) => {
         }
       }
       
-      // Load environment info
       const envName = localStorage.getItem('environmentName');
       if (envName) {
         setEnvironmentName(envName);
       }
       
-      // Set the OpenAI API key from localStorage if it exists
       const apiKey = localStorage.getItem('openai_api_key');
       if (!apiKey) {
-        // Store the API key if it's not already set
-        // Note: In production, this should be handled by a backend service
         storeApiKey('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');
         toast.success("API key has been configured");
       }
       
-      // Ensure company info is available
       if (!company && hasCompletedOnboarding === 'true') {
-        // If company data is missing but onboarding is marked complete, we have an inconsistency
         toast.error("Missing company information. Please complete the setup again.");
         localStorage.setItem('hasCompletedOnboarding', 'false');
         navigate('/onboarding');
       }
 
-      // Create personalized welcome message
       const welcomeMessage = getPersonalizedWelcomeMessage(companyName, businessType, environmentName);
       
-      // Initialize notifications with personalized welcome
       setNotifications([
         {
           text: welcomeMessage,
@@ -100,6 +91,12 @@ const Layout = ({ children }: LayoutProps) => {
       navigate('/login');
     }
   }, [navigate]);
+
+  useEffect(() => {
+    if (isMobile && mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+  }, [navigate, isMobile]);
 
   const getPersonalizedWelcomeMessage = (companyName: string, businessType: string, envName: string) => {
     if (companyName) {
@@ -128,21 +125,51 @@ const Layout = ({ children }: LayoutProps) => {
     setShowNotifications(!showNotifications);
   };
 
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-[#150D35] to-[#1D1148]">
-      <Sidebar />
-      <div className="flex-1 ml-[72px] lg:ml-[240px]">
-        {/* Header */}
-        <header className="sticky top-0 z-20 bg-[#150D35]/80 backdrop-blur-sm border-b border-white/10 px-6 py-4">
+      {isMobile && mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-smooth"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+      
+      <div className={cn(
+        "transition-smooth responsive-sidebar",
+        isMobile ? (mobileMenuOpen ? "translate-x-0" : "-translate-x-full") : "ml-0"
+      )}>
+        <Sidebar mobileMenuOpen={mobileMenuOpen} />
+      </div>
+      
+      <div className={cn(
+        "flex-1 transition-smooth",
+        isMobile ? "ml-0" : "ml-[72px] lg:ml-[240px]"
+      )}>
+        <header className="sticky top-0 z-20 bg-[#150D35]/80 backdrop-blur-sm border-b border-white/10 mobile-padding">
           <div className="flex items-center justify-between">
+            {isMobile && (
+              <button 
+                onClick={toggleMobileMenu}
+                className="p-2 mr-2 rounded-full bg-white/5 hover:bg-white/10 text-purple-300"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
+              </button>
+            )}
             <div className="flex items-center">
               <Sparkles className="w-5 h-5 text-purple-400 mr-2" />
               <h1 className="text-lg font-semibold text-white hidden sm:block">
                 {companyName ? `${companyName}` : environmentName ? `${environmentName} Workspace` : 'Professional AI Workspace'}
               </h1>
+              <h1 className="text-base font-semibold text-white sm:hidden">
+                {companyName ? companyName.substring(0, 12) + (companyName.length > 12 ? '...' : '') : 'AI Workspace'}
+              </h1>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <div className="relative">
                 <button 
                   onClick={toggleNotifications}
@@ -155,11 +182,11 @@ const Layout = ({ children }: LayoutProps) => {
                 </button>
                 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-[#1A0D3A] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden">
+                  <div className="absolute right-0 mt-2 w-[280px] sm:w-80 bg-[#1A0D3A] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden">
                     <div className="p-3 border-b border-white/10">
-                      <h3 className="font-medium text-white">Notifications</h3>
+                      <h3 className="font-medium text-white mobile-text">Notifications</h3>
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
+                    <div className="max-h-96 overflow-y-auto hide-scrollbar">
                       {notifications.length > 0 ? (
                         notifications.map((notification, index) => (
                           <div key={index} className="p-3 hover:bg-white/5 border-b border-white/10">
@@ -188,8 +215,8 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
               
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium text-white">{userName}</p>
@@ -200,8 +227,7 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         </header>
         
-        {/* Main content */}
-        <div className="p-6">
+        <div className="mobile-padding">
           {children}
         </div>
       </div>

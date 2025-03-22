@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
@@ -18,13 +18,29 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-const Sidebar = () => {
+interface SidebarProps {
+  mobileMenuOpen?: boolean;
+}
+
+const Sidebar = ({ mobileMenuOpen = false }: SidebarProps) => {
   const [expanded, setExpanded] = useState(true);
   const location = useLocation();
+  const isMobile = useIsMobile();
   
+  // Use environment data from localStorage
   const environmentName = localStorage.getItem('environmentName') || 'Professional';
   const environmentColor = localStorage.getItem('environmentColor') || 'from-indigo-500 to-blue-600';
+  
+  // Auto-collapse sidebar on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setExpanded(false);
+    } else {
+      setExpanded(true);
+    }
+  }, [isMobile]);
   
   const handleLogout = () => {
     toast.info("Logging out...");
@@ -45,8 +61,8 @@ const Sidebar = () => {
   
   // Animation variants
   const sidebarVariants = {
-    expanded: { width: "240px" },
-    collapsed: { width: "72px" }
+    expanded: { width: isMobile ? "240px" : "240px" },
+    collapsed: { width: isMobile ? "240px" : "72px" }
   };
   
   const textVariants = {
@@ -56,16 +72,19 @@ const Sidebar = () => {
   
   return (
     <motion.div 
-      className="h-screen bg-[#170E34]/95 backdrop-blur-sm border-r border-white/10 flex flex-col fixed left-0 top-0 z-30 overflow-hidden text-white"
+      className={cn(
+        "h-screen bg-[#170E34]/95 backdrop-blur-sm border-r border-white/10 flex flex-col fixed left-0 top-0 z-30 overflow-hidden text-white",
+        isMobile && "shadow-xl"
+      )}
       animate={expanded ? "expanded" : "collapsed"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
-      <div className="flex items-center justify-between p-5 border-b border-white/10">
+      <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10">
         <div className="flex items-center">
           <div className="flex-shrink-0">
-            <div className={`w-10 h-10 bg-gradient-to-br ${environmentColor} rounded-xl flex items-center justify-center`}>
-              <Bot className="w-6 h-6 text-white" />
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br ${environmentColor} rounded-xl flex items-center justify-center`}>
+              <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
           </div>
           <motion.div 
@@ -76,15 +95,17 @@ const Sidebar = () => {
             <p className="text-xs text-purple-300 truncate">Workspace</p>
           </motion.div>
         </div>
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="p-1 rounded-lg hover:bg-white/10 text-purple-300"
-        >
-          {expanded ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        {!isMobile && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="p-1 rounded-lg hover:bg-white/10 text-purple-300"
+          >
+            {expanded ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        )}
       </div>
       
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 hide-scrollbar">
         {menuItems.map((item) => (
           <Link
             key={item.path}
@@ -103,7 +124,7 @@ const Sidebar = () => {
             >
               {item.label}
             </motion.span>
-            {!expanded && (
+            {!expanded && !isMobile && (
               <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 rounded-md text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
                 {item.label}
               </div>
