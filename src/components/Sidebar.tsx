@@ -1,5 +1,5 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
@@ -21,10 +21,11 @@ import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SidebarProps {
-  mobileMenuOpen?: boolean;
+  mobileMenuOpen: boolean;
+  setMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const Sidebar = ({ mobileMenuOpen = false }: SidebarProps) => {
+const Sidebar = ({ mobileMenuOpen, setMobileMenuOpen }: SidebarProps) => {
   const [expanded, setExpanded] = useState(true);
   const location = useLocation();
   const isMobile = useIsMobile();

@@ -6,7 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Send, ArrowLeft, Mic, Paperclip, Image, MoreVertical, ThumbsUp, Copy, Sparkles, UploadCloud, DownloadCloud, FileText, MicOff, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import aiService, { Message } from '@/services/aiService';
+import aiService from '@/services/aiService';
+import { Message } from '@/services/aiService'; // Import Message type correctly
 import { getApiKey } from '@/config/apiConfig';
 
 interface AIEmployeeChatProps {
@@ -53,7 +54,8 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, employeeId, onClose }:
 
   // Load conversation history when component mounts
   useEffect(() => {
-    const history = aiService.getConversationHistory(employeeId);
+    // Get conversation history from the service
+    const history = aiService.getConversation(employeeId);
     
     // If there's no history, add a welcome message
     if (history.length === 0) {
@@ -193,10 +195,10 @@ const AIEmployeeChat = ({ name, role, avatarSrc, bgColor, employeeId, onClose }:
     
     try {
       // First, learn from the Brain AI if there's any context
-      await aiService.addToBrainKnowledge(employeeId, content);
+      await aiService.addToKnowledge(employeeId, content);
       
       // Send message to AI service and get response with Brain knowledge context
-      const aiResponse = await aiService.sendMessage(employeeId, content, {
+      const aiResponse = await aiService.send(employeeId, content, {
         files: uploadedFiles,
         images: uploadedImages
       });

@@ -69,7 +69,7 @@ const Index = () => {
         setBusinessType(companyData.businessType || '');
       }
       
-      const employees = aiService.getAIEmployees();
+      const employees = aiService.getEmployees();
       if (employees.length > 0) {
         setAiEmployees(employees);
       } else {
@@ -81,7 +81,7 @@ const Index = () => {
       setUserStats({
         tasks: tasks.length,
         files: aiService.getBrainItems('current-user', 'file').length,
-        messages: employees.reduce((total, emp) => total + aiService.getConversationHistory(emp.id).length, 0),
+        messages: employees.reduce((total, emp) => total + aiService.getConversation(emp.id).length, 0),
         sessions: parseInt(localStorage.getItem('sessionCount') || '0')
       });
 
@@ -158,64 +158,55 @@ const Index = () => {
     }
   };
   
-  const createDefaultEmployees = () => {
-    const company = localStorage.getItem('company');
-    if (!company) return;
-    
+  const createDefaultEmployees = (showToast = true) => {
     try {
-      const companyData = JSON.parse(company);
-      const businessType = companyData.businessType || '';
-      
-      let employeeRoles: {name: string, color: string}[] = [];
-      
-      switch (businessType) {
-        case 'startup':
-          employeeRoles = [
-            { name: 'Growth Hacker', color: 'bg-gradient-to-br from-purple-500 to-pink-600' },
-            { name: 'Product Manager', color: 'bg-gradient-to-br from-blue-500 to-indigo-600' }
-          ];
-          break;
-        case 'smb':
-          employeeRoles = [
-            { name: 'Marketing Specialist', color: 'bg-gradient-to-br from-amber-500 to-orange-600' },
-            { name: 'Business Analyst', color: 'bg-gradient-to-br from-emerald-500 to-green-600' }
-          ];
-          break;
-        case 'enterprise':
-          employeeRoles = [
-            { name: 'Corporate Strategist', color: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
-            { name: 'Market Analyst', color: 'bg-gradient-to-br from-rose-500 to-red-600' }
-          ];
-          break;
-        case 'freelancer':
-          employeeRoles = [
-            { name: 'Project Manager', color: 'bg-gradient-to-br from-purple-500 to-pink-600' },
-            { name: 'Content Writer', color: 'bg-gradient-to-br from-amber-500 to-orange-600' }
-          ];
-          break;
-        default:
-          employeeRoles = [
-            { name: 'Research Assistant', color: 'bg-gradient-to-br from-purple-500 to-pink-600' },
-            { name: 'Content Writer', color: 'bg-gradient-to-br from-amber-500 to-orange-600' }
-          ];
+      const existingEmployees = aiService.getEmployees();
+      if (existingEmployees.length === 0) {
+        const defaultEmployees = [
+          {
+            name: 'Research Assistant',
+            role: 'Research Specialist',
+            avatar: '/placeholder.svg',
+            color: 'from-blue-600 to-cyan-500'
+          },
+          {
+            name: 'Content Writer',
+            role: 'Content Specialist',
+            avatar: '/placeholder.svg',
+            color: 'from-amber-600 to-orange-500'
+          },
+          {
+            name: 'SEO Specialist',
+            role: 'SEO Specialist',
+            avatar: '/placeholder.svg',
+            color: 'from-rose-600 to-red-500'
+          },
+          {
+            name: 'Data Analyzer',
+            role: 'Data Analyst',
+            avatar: '/placeholder.svg',
+            color: 'from-emerald-600 to-green-500'
+          }
+        ];
+
+        defaultEmployees.map(emp => {
+          return aiService.add(
+            emp.name,
+            emp.role,
+            emp.avatar,
+            `bg-gradient-to-r ${emp.color}`
+          );
+        });
+
+        if (showToast) {
+          toast.success('Default AI employees have been set up for you!');
+        }
       }
-      
-      const newEmployees = employeeRoles.map(role => 
-        aiService.addCustomEmployee(
-          role.name,
-          role.name,
-          '/placeholder.svg',
-          role.color
-        )
-      );
-      
-      setAiEmployees(newEmployees);
-      toast.success("Default AI team created based on your business type!");
     } catch (error) {
       console.error('Error creating default employees:', error);
     }
   };
-  
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     
@@ -296,7 +287,7 @@ const Index = () => {
     const randomRole = roles[Math.floor(Math.random() * roles.length)];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     
-    const newEmployee = aiService.addCustomEmployee(randomRole, randomRole, '/placeholder.svg', randomColor);
+    const newEmployee = aiService.add(randomRole, randomRole, '/placeholder.svg', randomColor);
     setAiEmployees([...aiEmployees, newEmployee]);
     
     toast.success(`Added new ${randomRole} to your team!`);

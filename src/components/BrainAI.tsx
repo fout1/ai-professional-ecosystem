@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Brain, FileText, Globe, Plus, ChevronLeft, ChevronRight, Upload, Search, File, X, Link, Scissors, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -30,28 +29,32 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
   const [currentItem, setCurrentItem] = useState<BrainItem | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Load brain items on component mount
+  const [activeTab, setActiveTab] = useState('knowledge');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editingItem, setEditingItem] = useState<BrainItem | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+
   useEffect(() => {
     loadBrainItems();
   }, []);
-  
+
   const loadBrainItems = () => {
     const items = aiService.getBrainItems('current-user');
     setBrainItems(items);
   };
-  
+
   const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       setUploadFile(files[0]);
     }
   };
-  
+
   const handleUpload = () => {
     try {
       if (uploadType === 'website' && uploadUrl) {
-        // Add website to Brain
         const newItem = aiService.addBrainItem({
           type: 'website',
           content: uploadUrl,
@@ -65,14 +68,11 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
         setShowUploadDialog(false);
         setUploadUrl('');
       } else if (uploadType === 'file' && uploadFile) {
-        // In a real implementation, this would upload the file to Supabase storage
-        // Here we'll simulate by storing file metadata
         const fileType = uploadFile.name.endsWith('.pdf') ? 'pdf' : 'doc';
         
         const reader = new FileReader();
         reader.onload = (e) => {
           if (e.target?.result) {
-            // Store file content
             const fileContent = uploadFile.name + ": This is simulated content for " + uploadFile.name;
             
             const newItem = aiService.addBrainItem({
@@ -94,7 +94,6 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
         setShowUploadDialog(false);
         setUploadFile(null);
       } else if (uploadType === 'snippet' && snippetTitle && snippetContent) {
-        // Add snippet to Brain
         const newItem = aiService.addBrainItem({
           type: 'snippet',
           content: snippetContent,
@@ -116,13 +115,13 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
       toast.error("Failed to add to Brain. Please try again.");
     }
   };
-  
+
   const handleViewContent = (item: BrainItem) => {
     setCurrentItem(item);
     setViewItemDialog(true);
     setIsEditing(false);
   };
-  
+
   const handleSaveEdits = () => {
     if (!currentItem) return;
     
@@ -142,7 +141,7 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
       toast.error("Failed to save changes");
     }
   };
-  
+
   const handleDeleteItem = () => {
     if (!currentItem) return;
     
@@ -157,7 +156,7 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
       toast.error("Failed to delete item");
     }
   };
-  
+
   const handleSearch = () => {
     if (!searchQuery.trim()) {
       loadBrainItems(); // Reset to show all items
@@ -168,7 +167,7 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
     setBrainItems(results);
     toast.success(`Found ${results.length} items matching "${searchQuery}"`);
   };
-  
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'file':
@@ -181,7 +180,83 @@ const BrainAI = ({ snippets, websites, files, name }: BrainAIProps) => {
         return <File className="w-4 h-4 text-purple-400" />;
     }
   };
-  
+
+  const addWebsite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!websiteUrl) {
+      toast.error('Please enter a valid URL');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const websiteData = {
+        type: 'website' as const,
+        title: websiteUrl,
+        content: `Content from ${websiteUrl} would be extracted and stored here.`,
+        date: new Date(),
+        userId: 'current-user',
+        fileUrl: websiteUrl
+      };
+      
+      aiService.addBrainItem(websiteData);
+      
+      toast.success('Website added to your knowledge base');
+      setWebsiteUrl('');
+      setActiveTab('knowledge');
+      loadBrainItems();
+    } catch (error) {
+      console.error('Error adding website:', error);
+      toast.error('Failed to add website');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const editKnowledgeItem = async (item: BrainItem) => {
+    setEditingItem(item);
+    setEditTitle(item.title);
+    setEditContent(item.content);
+    setIsEditModalOpen(true);
+  };
+
+  const saveEditedItem = async () => {
+    if (!editingItem) return;
+    
+    setIsSaving(true);
+    
+    try {
+      await aiService.updateBrainItem(editingItem.id, {
+        title: editTitle,
+        content: editContent
+      });
+      
+      toast.success('Knowledge item updated');
+      setIsEditModalOpen(false);
+      loadBrainItems();
+    } catch (error) {
+      console.error('Error updating item:', error);
+      toast.error('Failed to update item');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteKnowledgeItem = async (id: string) => {
+    try {
+      await aiService.deleteBrainItem(id);
+      toast.success('Item deleted from knowledge base');
+      loadBrainItems();
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast.error('Failed to delete item');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-2">
