@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react"; // Properly importing from React
+import { useEffect } from "react"; // Import from React, not react-router-dom
 import { AnimatePresence } from "framer-motion";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
