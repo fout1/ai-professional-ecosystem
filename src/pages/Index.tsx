@@ -216,7 +216,17 @@ const Index = () => {
       setIsAnalyzingQuestion(true);
       
       try {
-        const bestEmployee = aiService.findBestEmployeeForQuestion(inputValue);
+        const allEmployees = aiService.getEmployees();
+        let bestEmployee = allEmployees[0]; // Default to first employee
+        
+        const questionLower = inputValue.toLowerCase();
+        
+        allEmployees.forEach(emp => {
+          const roleLower = emp.role.toLowerCase();
+          if (questionLower.includes(roleLower)) {
+            bestEmployee = emp;
+          }
+        });
         
         if (bestEmployee) {
           toast.success(`Routing your question to ${bestEmployee.name}, who can best assist with this topic!`);
@@ -257,7 +267,9 @@ const Index = () => {
   };
   
   const handleAIEmployeeClick = (employeeId: string) => {
-    const employee = aiService.getEmployeeById(employeeId);
+    const allEmployees = aiService.getEmployees();
+    const employee = allEmployees.find(emp => emp.id === employeeId);
+    
     if (employee) {
       setActiveChat(employee);
       
