@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 
 export interface AIEmployee {
@@ -7,6 +8,7 @@ export interface AIEmployee {
   avatar: string;
   color: string;
   specialties?: string[];
+  trainingData?: string;
 }
 
 export interface BrainItem {
@@ -18,10 +20,18 @@ export interface BrainItem {
   userId: string;
 }
 
-interface ConversationMessage {
+export interface Message {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  attachments?: Array<{ type: string, name: string }>;
+  images?: string[];
+}
+
+interface FileUpload {
+  files: File[];
+  images: string[];
 }
 
 const aiService = {
@@ -50,17 +60,25 @@ const aiService = {
     return employees.find(employee => employee.id === id);
   },
 
-  updateEmployee: (id: string, updates: Partial<AIEmployee>): AIEmployee | undefined => {
-    const employees = aiService.getEmployees().map(employee =>
-      employee.id === id ? { ...employee, ...updates } : employee
+  updateEmployee: (employee: AIEmployee): AIEmployee | undefined => {
+    const employees = aiService.getEmployees().map(emp =>
+      emp.id === employee.id ? employee : emp
     );
     localStorage.setItem('aiEmployees', JSON.stringify(employees));
-    return aiService.getEmployeeById(id);
+    return aiService.getEmployeeById(employee.id);
   },
 
   deleteEmployee: (id: string): void => {
     const employees = aiService.getEmployees().filter(employee => employee.id !== id);
     localStorage.setItem('aiEmployees', JSON.stringify(employees));
+  },
+
+  update: (id: string, updates: Partial<AIEmployee>): AIEmployee | undefined => {
+    const employees = aiService.getEmployees().map(employee =>
+      employee.id === id ? { ...employee, ...updates } : employee
+    );
+    localStorage.setItem('aiEmployees', JSON.stringify(employees));
+    return aiService.getEmployeeById(id);
   },
 
   findBestEmployeeForQuestion: (question: string): AIEmployee | undefined => {
@@ -122,8 +140,24 @@ const aiService = {
     localStorage.setItem(`brainItems-${userId}`, JSON.stringify(items));
   },
 
-  addConversationMessage: (employeeId: string, message: Omit<ConversationMessage, 'timestamp'>): ConversationMessage => {
-    const newMessage: ConversationMessage = {
+  removeBrainItem: (id: string): void => {
+    // Find which user owns this item
+    const allUsers = aiService.getEmployees().map(emp => emp.id);
+    allUsers.push('current-user'); // Add the current user
+    
+    for (const userId of allUsers) {
+      const items = aiService.getBrainItems(userId);
+      const filtered = items.filter(item => item.id !== id);
+      if (items.length !== filtered.length) {
+        localStorage.setItem(`brainItems-${userId}`, JSON.stringify(filtered));
+        break;
+      }
+    }
+  },
+
+  addConversationMessage: (employeeId: string, message: Omit<Message, 'timestamp' | 'id'>): Message => {
+    const newMessage: Message = {
+      id: uuidv4(),
       ...message,
       timestamp: new Date()
     };
@@ -133,13 +167,36 @@ const aiService = {
     return newMessage;
   },
 
-  getConversation: (employeeId: string): ConversationMessage[] => {
+  getConversation: (employeeId: string): Message[] => {
     const conversation = localStorage.getItem(`conversation-${employeeId}`);
     return conversation ? JSON.parse(conversation) : [];
   },
 
   clearConversation: (employeeId: string): void => {
     localStorage.removeItem(`conversation-${employeeId}`);
+  },
+
+  addToKnowledge: async (employeeId: string, content: string): Promise<void> => {
+    // This is a simulated function that would add user messages to the AI's knowledge base
+    console.log(`Adding to knowledge base for employee ${employeeId}: ${content.substring(0, 50)}...`);
+    // In a real implementation, this would process the content and store it
+    return Promise.resolve();
+  },
+
+  send: async (employeeId: string, content: string, uploads: FileUpload): Promise<Message> => {
+    // This is a simulated function that would send a message to the AI and get a response
+    console.log(`Sending message to employee ${employeeId}: ${content.substring(0, 50)}...`);
+    
+    // Add a delay to simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Create a simulated response
+    return {
+      id: uuidv4(),
+      role: 'assistant',
+      content: `I've processed your message about "${content.substring(0, 30)}..." ${uploads.files.length > 0 ? 'and your files' : ''}.`,
+      timestamp: new Date(),
+    };
   },
 
   analyzeWithAI: async (text: string, prompt: string) => {

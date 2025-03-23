@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter
 } from "@/components/ui/dialog"
 import {
   Select,
@@ -109,7 +110,7 @@ const AIEmployees = () => {
         employeeName,
         employeeRole,
         '/placeholder.svg',
-        `bg-gradient-to-r ${selectedColor}`,
+        selectedColor,
         selectedSpecialties
       );
       
@@ -182,8 +183,7 @@ const AIEmployees = () => {
   };
 
   const handleEmployeeClick = (employeeId: string) => {
-    const allEmployees = aiService.getEmployees();
-    const employee = allEmployees.find(emp => emp.id === employeeId);
+    const employee = aiService.getEmployeeById(employeeId);
     
     if (employee) {
       setSelectedEmployee(employee);
@@ -490,3 +490,4 @@ const AIEmployees = () => {
 };
 
 export default AIEmployees;
+

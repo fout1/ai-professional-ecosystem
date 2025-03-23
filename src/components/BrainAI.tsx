@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ const BrainAI = ({ snippets, websites, files, name }: { snippets: number; websit
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  // Adding missing state variables for TypeScript errors
+  // Adding previously missing state variables
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
@@ -74,7 +75,7 @@ const BrainAI = ({ snippets, websites, files, name }: { snippets: number; websit
   const confirmDelete = () => {
     if (selectedItem) {
       try {
-        aiService.removeBrainItem(selectedItem.id);
+        aiService.deleteBrainItem('current-user', selectedItem.id);
         loadBrainItems();
         setIsDeleteDialogOpen(false);
         toast.success('Item removed from your knowledge base');

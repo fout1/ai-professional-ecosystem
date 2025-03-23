@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,8 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Send, ArrowLeft, Mic, Paperclip, Image, MoreVertical, ThumbsUp, Copy, Sparkles, UploadCloud, DownloadCloud, FileText, MicOff, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import aiService from '@/services/aiService';
-import { Message } from '@/services/aiService'; // Import Message type correctly
+import aiService, { Message } from '@/services/aiService';
 import { getApiKey } from '@/config/apiConfig';
 
 interface AIEmployeeChatProps {
