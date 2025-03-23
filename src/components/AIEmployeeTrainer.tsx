@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,57 @@ const AIEmployeeTrainer = ({ isOpen, onClose, employee }: AIEmployeeTrainerProps
   const [name, setName] = useState(employee?.name || '');
   const [role, setRole] = useState(employee?.role || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [customTrainingTemplate, setCustomTrainingTemplate] = useState('');
+
+  // Load user profile data to customize training suggestions
+  useEffect(() => {
+    if (isOpen && employee) {
+      // Load company/user data to personalize the training
+      const companyData = localStorage.getItem('company');
+      if (companyData) {
+        try {
+          const parsedCompany = JSON.parse(companyData);
+          const companyName = parsedCompany.name || '';
+          const businessType = parsedCompany.businessType || '';
+          
+          // Generate custom training template based on business type
+          let template = '';
+          
+          if (companyName) {
+            template += `You are an AI employee working for ${companyName}. `;
+          }
+          
+          switch(businessType) {
+            case 'startup':
+              template += `As a ${role} for a startup, you should focus on growth strategies, market disruption, and efficient resource allocation. `;
+              break;
+            case 'smb':
+              template += `As a ${role} for a small-to-medium business, you should focus on operational efficiency, customer retention, and sustainable growth. `;
+              break;
+            case 'enterprise':
+              template += `As a ${role} for an enterprise organization, you should focus on scalability, compliance, and enterprise-grade solutions. `;
+              break;
+            case 'freelancer':
+              template += `As a ${role} for a freelance business, you should focus on client acquisition, personal branding, and time management. `;
+              break;
+            default:
+              template += `As a ${role}, you should help users accomplish their business goals effectively. `;
+          }
+          
+          template += `\n\nYou should respond in a helpful, professional manner and provide specific, actionable advice relevant to your role as ${role}.`;
+          
+          setCustomTrainingTemplate(template);
+          
+          // If training data is empty, pre-populate with the template
+          if (!trainingData || trainingData === '') {
+            setTrainingData(template);
+          }
+        } catch (error) {
+          console.error('Error loading company data:', error);
+        }
+      }
+    }
+  }, [isOpen, employee, role, trainingData]);
 
   const handleSave = () => {
     if (!employee) return;
@@ -43,6 +94,11 @@ const AIEmployeeTrainer = ({ isOpen, onClose, employee }: AIEmployeeTrainerProps
       toast.error("Failed to train AI employee");
       setIsLoading(false);
     }
+  };
+
+  const applyTemplate = () => {
+    setTrainingData(customTrainingTemplate);
+    toast.success("Training template applied!");
   };
 
   if (!employee) return null;
@@ -99,9 +155,23 @@ const AIEmployeeTrainer = ({ isOpen, onClose, employee }: AIEmployeeTrainerProps
               placeholder="Example: You are a marketing specialist who helps create engaging social media content. You have expertise in digital marketing trends and best practices..."
             />
             
-            <p className="text-xs text-purple-300 mt-1">
-              Describe the AI employee's role, expertise, and how they should respond to user queries.
-            </p>
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-xs text-purple-300">
+                Describe the AI employee's role, expertise, and how they should respond to user queries.
+              </p>
+              
+              {customTrainingTemplate && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs border-white/10 text-white hover:bg-white/10"
+                  onClick={applyTemplate}
+                >
+                  <Sparkles className="w-3 h-3 mr-1.5" />
+                  Apply Personalized Template
+                </Button>
+              )}
+            </div>
           </div>
           
           <div className="bg-white/5 border border-white/10 rounded-lg p-4">
